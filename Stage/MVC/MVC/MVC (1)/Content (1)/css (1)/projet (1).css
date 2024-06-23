@@ -1,0 +1,848 @@
+@import url('https://fonts.googleapis.com/css2?family=Sail&display=swap');
+
+*{
+    margin: 0;
+    padding: 0;
+}
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow:hidden;
+}
+.Logo{
+    font-family: 'Sail';
+    font-weight:lighter;
+    font-size:51px;
+    color:#33465d;
+    position:absolute;
+}
+
+.blur {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(10px); 
+    z-index: 1;
+    visibility:hidden;
+}
+
+.zone-transparente {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background-color: #000000d4;
+    visibility:hidden;
+    
+}
+
+/** Page Login **/
+#page_login_body{
+    display:flex;
+    height:100vh;
+    justify-content: center;
+    align-items:center;
+    background-color: #33465d;
+}
+#login{
+    display:flex;
+    justify-content: center;
+    align-items:center;
+    height:75vh;
+    width:55vh;
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+    background-color: white;
+    
+    
+}
+
+#Logo-Login{
+    
+    margin-bottom:50vh;
+
+}
+#Connexion{
+    margin-bottom:30vh;
+
+}
+
+#login form{
+    display:flex;
+    justify-content: center;
+    align-items:center;
+    position:absolute;
+    height:50vh;
+    width:55vh;
+    
+    
+
+}
+
+#login input{
+    position:absolute;
+    border:none;
+    border-radius:1vh;
+    height: 5vh;
+    width:45vh;
+    background-color: rgb(238, 238, 238);
+    
+
+}
+
+#login #username{
+    margin:0vh 0vh 10vh 0vh;
+}
+
+#login #pass{
+    margin:10vh 0vh 0vh 0vh;
+}
+
+::placeholder{
+    text-align:center;
+}
+
+#login #submit{
+    width:35vh;
+    height:15%;
+    border-radius:4vh;
+    margin:45vh 0vh 0vh 0vh;
+    background-color: #212e53;
+    color:white;
+}
+
+#pass_forgot{
+    position:absolute;
+    font-size:1.8vh;
+    color:rgb(200, 200, 200);
+}
+#login a{
+    width:16vh;
+    position:absolute;
+    margin: 18vh 0vh 0vh 29vh;
+}
+
+/* Page MDP oublié */
+
+#login #adress{
+    margin:0vh 0vh 10vh 0vh;
+}
+
+#login #mdp_oublié{
+    position:absolute;
+    margin: 0vh 0vh 60vh 0vh;
+
+
+}
+
+#login #infos{
+    
+    margin: 0vh 0vh 35vh 0vh;
+    color:#909093;
+
+
+}
+
+
+/* Page Vérification Du Code*/
+
+#login #code{
+    margin:0vh 0vh 10vh 0vh;
+}
+
+/* Page Réinitialisation MDP */
+
+
+#login #newpass{
+    margin:0vh 0vh 10vh 0vh;
+    
+}
+
+#login #confirm_pass{
+    margin:10vh 0vh 0vh 0vh;
+    
+}
+
+/* Page adduser*/
+
+#adduser_body{
+    display:flex;
+    height:100vh;
+    justify-content: center;
+    align-items:center;
+    background-color: #084274;
+    
+}
+
+#adduser_body ::placeholder{
+    text-align:center;
+    color:white;
+}
+
+#adduser_body *{
+
+    color:white;
+}
+
+#adduser-div{
+    display:flex;
+    height: 75vh;
+    width: 75vh;
+    background-color: rgb(4, 38, 74);
+    justify-content: center;
+    align-items: center;
+}
+
+#adduser-div form{
+    display:flex;
+    justify-content: center;
+    align-items:center;
+    position:absolute;
+    height:75vh;
+    width:100vh;
+    }
+
+#adduser-div input{
+    position:absolute;
+    border:none;
+    border-radius:1vh;
+    height: 5vh;
+    width:55vh;
+    background-color:#306D97;
+    
+
+}
+
+#adduser-div #submit{
+    width:35vh;
+    margin:45vh 0vh 0vh 0vh;
+    background-color: #084274;
+    color:white;
+}
+
+#adduser-div #username{
+    margin:0vh 0vh 40vh 0vh;
+    
+}
+
+#adduser-div #adress{
+    margin:0vh 0vh 18vh 0vh;
+    
+}
+
+#adduser-div #droit{
+    height: 15vh;
+    width: 25vh;
+    margin:14vh 30vh 0vh 0vh;
+    border-radius:1vh;
+    background-color:#306D97;
+    
+}
+
+#adduser-div #role{
+    margin: 1vh 0vh 0vh 2vh;
+    
+    
+}
+
+#adduser-div .CA-radio{
+    display:block;
+    height:2vh;
+    width:2vh;
+    
+    
+}
+
+
+label[for="admin"]{
+    position:absolute;
+    margin: 0vh 0vh 0vh 4vh;
+    
+    
+    
+}
+
+#adduser-div #admin{
+    margin: 0.4vh 0vh 0vh 12vh;
+    
+    
+}
+
+label[for="client"]{
+    position:absolute;
+    margin: 5vh 0vh 0vh 4vh;
+    
+    
+    
+}
+
+#adduser-div #client{
+    margin: 5.5vh 0vh 0vh 12vh;
+    
+    
+}
+
+/* Userlist Page */
+
+#userlist-body{
+    display:flex;
+    height:100vh;
+    justify-content: center;
+    align-items:center;
+    background-color: #ffffff;
+    
+}
+
+#userlist-body #userinfos{
+    height: 50vh;
+    width: 50vh;
+    background-color:#084274;
+    visibility: hidden;
+
+}
+
+
+/* Stats */
+
+#stats-body{
+    display:flex;
+    height:100vh;
+    justify-content: center;
+    align-items:center;
+    background-color: #F5F5F5;
+    
+}
+
+#stats-body #stats{
+    height: 100vh;
+    width: 150vh;
+    background-color:#084274;
+    
+
+}
+
+/*Home*/
+p{
+    font-family:'Roboto';
+}
+#home-body{
+    display:flex;
+    height:100vh;
+    background-color:red;
+}
+
+#Logo-Home{
+    
+    margin:0% 1% 43% 0%;
+
+    position:absolute;
+
+}
+
+#home-body #menu{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    width:21.4%;
+    height:100%;
+    background-color:rgb(255, 255, 255);
+}
+
+#home-body #menu .Menu-Option{
+    position:absolute;
+    font-size:24px;
+    font-weight:bolder;
+}
+
+#inputs-space{
+    height:80%;
+    width:100%;
+    margin-top:51%;
+    
+    
+}
+#Overview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 10%;
+    width: 100%;
+    margin: 0% 0% 0% 0%;
+    transition: all 0.5s ease-out
+    
+}
+
+#Chambres {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 10%;
+    width: 100%;
+    margin: 15% 0% 0% 0%;
+    transition: all 0.5s ease-out;
+    
+}
+
+#Factures {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 10%;
+    width: 100%;
+    margin: 15% 0% 0% 0%;
+    transition: all 0.5s ease-out
+    
+}
+
+#Parametres {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 10%;
+    width: 100%;
+    margin: 36% 0% 0% 0%;
+    transition: all 0.5s ease-out
+    
+}
+
+ .Options-Logo{
+    position:absolute;
+    width:30px;
+    height:30px;
+    margin-right: 10%;
+
+}
+
+#Option-Para-Img{
+    margin-right: 11%;
+    
+
+}
+
+#home-body #menu #ligne{
+    position:absolute;
+    height:0.1%;
+    width:21.4%;
+    margin: 6.8% 0% 0% 0%;
+    background-color:#CCCCCC;
+
+}
+
+#home-body #visuel-space{
+    height:86%;
+    width:78.6%;
+    margin:7.9% 0% 0% 0%;
+    background-color: #F5F5F5;
+    overflow: auto;
+    
+
+}
+
+#home-body #infos-entete{
+    display:flex;
+    width: 80.3%;
+    height:15%;
+    margin:1% 0% 0% 10%;
+    
+}
+
+#home-body #info-chambre{
+    position:absolute;
+    width: 24.8%;
+    height:11%;
+    border-radius:15px;
+    box-shadow: #00000036 4px 4px 4px;
+    margin:0% 0% 0% 0%;
+    background-color: white;
+}
+
+#home-body #info-CA{
+    position:absolute;
+    width: 24.8%;
+    height:11%;
+    border-radius:15px;
+    box-shadow: #00000036 4px 4px 4px;
+    margin:0% 0% 0% 38.4%;
+    background-color: white;
+}
+
+#home-body #space2{
+    /* display:flex; */
+    
+    width: 80.2%;
+    height:31%;
+    margin:6.1% 0% 0% 10%;
+    
+    
+}
+
+#home-body #space3{
+    
+    width: 80.2%;
+    height:31%;
+    margin:3.6% 0% 0% 10%;
+    
+}
+
+#info-RC{
+    position:absolute;
+    width: 15.3%;
+    height:26.7%;
+    border-radius:15px;
+    box-shadow: #00000036 4px 4px 4px;
+    margin:0% 0% 0% 47.8%;
+    background-color: white;
+}
+
+#info-RA{
+    position:absolute;
+    width: 15.3%;
+    height:26.7%;
+    border-radius:15px;
+    box-shadow: #00000036 4px 4px 4px;
+    margin:0% 0% 0% 47.8%;
+    background-color: white;
+}
+
+#home-body #info-CAByAdvance{
+    position:absolute;
+    width: 44.6%;
+    height:26.7%;
+    border-radius:15px;
+    box-shadow: #00000036 4px 4px 4px;
+    margin:0% 0% 0% 0%;
+    background-color: white;
+}
+
+#home-body #info-PMByAdvance{
+    position:absolute;
+    width: 44.6%;
+    height:26.7%;
+    border-radius:15px;
+    box-shadow: #00000036 4px 4px 4px;
+    margin:0% 0% 0% 0%;
+    background-color: white;
+}
+
+#home-body #info-CA #info-chambre-text{
+    font-size: 50px;
+    margin:0% 0% 0% 20%;
+
+    
+} 
+
+#visuel-space #infos-entete .voirplus{
+    position:absolute;
+    font-size:35px;
+    margin:0% 0% 0% 88%;
+    color:#000000;
+}
+
+#visuel-space #infos-entete img{
+    position:absolute;
+    height: 84px;
+    width:88px;
+    margin:2.5% 0% 0% 4.63%;
+}
+
+#visuel-space #infos-entete .stats{
+    position:absolute;
+    font-size:36px;
+    font-weight: bolder;
+    margin:2.5% 0% 0% 27%;
+}
+
+.info-entete-text{
+    position:absolute;
+    font-size:32px;
+    font-weight: bolder;
+    margin:12.5% 0% 0% 27%;
+    color:#7F7F7F;
+    
+}
+
+#visuel-space #infos-entete .voirplus{
+    
+    height: 10%;
+    width:8%;
+    margin:3% 0% 0% 91%;
+    
+    
+}
+#visuel-space #infos-entete .voirplus .point{
+    position:absolute;
+    height: 5px;
+    width:5px;
+    margin:0% 0% 0% 0%;
+    border-radius:50%;
+    
+    background-color: #969696;
+    
+}
+#visuel-space #infos-entete .voirplus .left-point{
+    margin:5% 0% 0% 25%;
+    
+    
+}
+
+#visuel-space #infos-entete .voirplus .mid-point{
+    margin:5% 0% 0% 45%;
+    
+    
+    
+}
+
+#visuel-space #infos-entete .voirplus .right-point{
+    margin:5% 0% 0% 64%;
+    
+}
+
+.graph-space{
+
+    width:57.12%;
+    height:89.9%;
+    margin:1.75% 0% 0% 1.98%;
+    background-color: #FAFAFA;
+
+}
+
+.graph-space .graph{
+    position:absolute;
+    width:50%;
+    height:70%;
+    margin:3.2% 0% 0% 2.86%;
+    
+}
+
+.info-title{
+    position:absolute;
+    font-size:20px;
+    font-weight:bolder;
+    margin:3.2% 0% 0% 65%;
+
+}
+
+.infos-settings{
+    position:absolute;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    width:3%;
+    height:10%;
+    margin:2% 0% 0% 95%;
+    cursor:pointer;
+    
+    
+    
+
+}
+
+.infos-settings img{
+    width:100%;
+    height:100%;
+}
+
+.little-graph-space{
+    width:82.37%;
+    height:81.16%;
+    margin:9.5% 0% 0% 9%;
+    background-color: #FAFAFA;
+}
+.graph-space img{
+    position:absolute;
+    width:2%;
+    height:5%;
+    margin:1% 0% 0% 53.6%;
+    cursor:pointer;
+}
+
+#inputs-space a{
+    color: black;
+    
+}
+
+.Page-Parametres{
+    position:absolute;
+    width:40.93%;
+    height:61.11%;
+    margin:10.5% 0% 0% 29.7%;
+    background-color: white;
+    z-index: 2;
+    visibility: hidden;
+    
+}
+
+.Page-Parametres *{
+    z-index:3;
+
+}
+
+.Page-Parametres img{ /* Button fermer*/
+    margin:2% 0% 0% 95%;
+    cursor:pointer;
+ 
+}
+
+.Page-Parametres p{
+    font-weight:bolder;
+
+}
+
+.para-title{
+    font-size:36px;
+    margin:3.78% 0% 0% 3%;
+
+}
+
+.para-infos{
+    font-size:28px;
+    color:#5C5C5C;
+    margin:2% 0% 0% 3%;
+}
+
+.lighter{
+    font-weight:lighter;
+}
+
+.Site-para{
+    font-size:24px;
+    margin:6% 0% 0% 3%;
+}
+
+.Periode-para{
+    width:15%;
+    font-size:24px;
+    margin:2.8% 0% 0% 3%;
+    
+}
+
+label{
+    position:absolute;
+    vertical-align: middle;
+    font-size: 20px;
+    font-weight:bold;
+    cursor:pointer;
+    margin:0% 0% 0% 0%;
+}
+
+
+.Page-Parametres form{
+    position:absolute;
+    height:72%;
+    width:100%;
+    
+    
+    
+}
+
+#Periode{
+    display: inline-block; /* ma l'air useless !!!! */
+    height: 13vh;
+    width: 15vh;
+    margin: 3% 0% 0% 15%; 
+    
+}
+
+.Page-Parametres input[type="radio"] {
+    display:block;
+    margin: 2.5% 0% 0% 70%;
+    cursor:pointer;
+}
+
+
+.div-radio-jour{
+    visibility:hidden;
+}
+
+
+
+.Page-Parametres input{
+    font-size:20px;
+}
+
+.input-date-spaces{
+    position:absolute;
+    top:0;
+    display:flex;
+    width:35.11%;
+    height:27.27%;
+    margin:27% 0% 0% 60%;
+    background-color:#F7F7F7;
+    
+    
+}
+.inputs-date{
+    height:16%;
+    width:75%;
+    margin: 15% 0% 0% 11.3%;  
+    
+     
+}
+
+.inputs-date select[name="year"]{
+    height:15%;
+    width:75%;
+}
+
+.date-date,.date-month, .date-week, .date-year{
+    position:absolute;
+    font-size:18px;
+    font-weight: bold;
+    cursor:pointer;
+    visibility:hidden;
+    
+    
+}
+
+.exemple{
+    position:absolute;
+    font-weight:bold;
+    margin: 11% 0% 0% 5%;
+    visibility:hidden;
+    
+}
+
+.Page-Parametres select[name="Site"]{
+    width:294px;
+    height:32px;
+    margin:2.5% 0% 0% 4.83%;
+    font-size:18px; /*Modifie le style du text de l'input select*/
+    font-weight: bold;
+    color: rgb(255, 255, 255); /* Change la couleur de la flèche */
+    background-color: #41526F; /* Change la couleur de font de l'input */
+    cursor:pointer;
+    
+    
+
+}
+
+.buttons-valider{
+    position:absolute;
+    height:10%;
+    width:20.73%;
+    font-size:20px;
+    font-weight:bold;
+    border-radius:25px;
+    margin:26% 0% 0% 0%;
+    color:white;
+    background-color:#41526F;
+    cursor:pointer;
+    
+}
+
+.extend-graph{
+    position:absolute;
+    width: 60%;
+    height: 50%;
+    background-color: rgb(255, 255, 255);
+    margin:13.5% 0% 0% 20.5%;
+    border-radius:4px;
+    z-index: 2;
+    visibility: hidden;
+}
+
+
+
