@@ -7,11 +7,11 @@ Bienvenue sur ce dépôt regroupant l'ensemble des SAE (Situations d'Apprentissa
 
 Pour reproduire ou exécuter les projets présents dans ce dépôt, vous aurez besoin des outils suivants :
 
-Langages : Python, Java, PHP, JavaScript, TypeScript.
+Langages : Python, Java, PHP, JavaScript.
 
 Frameworks et bibliothèques : React, Express.js.
 
-Bases de données : MySQL, PostgreSQL, MongoDB.
+Bases de données : MySQL, PostgreSQL, MongoDB, Redis.
 
 Outils de développement : Git, Docker, Node.js.
 
