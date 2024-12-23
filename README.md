@@ -23,7 +23,7 @@ git clone <url-du-depot>
 ```
 Naviguez jusqu’à la SAE de votre choix :
 ```
-cd BUT2/Sae\ BUT3/rebirth
+cd Sae\ BUT3/rebirth
 ```
 Consultez le fichier README.md de la SAE pour les instructions spécifiques.
 
