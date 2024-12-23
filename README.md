@@ -28,6 +28,6 @@ cd Sae\ BUT3/rebirth
 Consultez le fichier README.md de la SAE pour les instructions spécifiques.
 
 
-Contributeurs
+## Contributeurs
 
 Tous les travaux présents ici ont été réalisés dans le cadre de mes études. Certains projets ont été développés en équipe, les noms des membres sont mentionnés dans les README des SAE concernées.
