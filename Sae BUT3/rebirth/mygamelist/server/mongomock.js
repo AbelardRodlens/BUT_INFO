@@ -1,4 +1,6 @@
-import { mockData } from "./mockdata.js";
+import mockData from "./mockdata.js";
+
+
 
 
 
@@ -56,19 +58,19 @@ const findTitleAbbreviation = (str)=>{
 
 }
 
- export const mongomock={
+const mongomock={
   findGames: (object,page_number) => {
     return new Promise((resolve, reject) => {
       try {
         // Vérifications initiales
         if (Object.keys(object).length === 0)
-          return reject(new ReferenceError(`Aucun paramètre n'a été spécifié.`));
+          return reject(new ReferenceError(`No parameters have been specified.`));
         if (page_number === undefined)
-          return reject(new ReferenceError(`Veuillez spécifier le numéro de la page !!!`));
+          return reject(new ReferenceError(`Please specify page number`));
         if (typeof page_number !== "number")
-          return reject(new TypeError(`L'argument page_number doit être de type number.`));
+          return reject(new TypeError(`The second argument must be a number`));
         if (mockData["games"].length === 0)
-          return reject(new Error(`La collection jeux semble vide.`));
+          return reject(new Error(`The game collection looks empty.`));
 
         const maxGamesPerPage = 10; // Nombre maximum de jeux par page
         const lastPage = page_number - 1; // Page précédente (basée sur un index 0)
@@ -94,16 +96,13 @@ const findTitleAbbreviation = (str)=>{
                 );
               }
               // Comparaison de chaînes de caractères insensible à la casse
-              return String(gameValue).toLowerCase().includes(String(keyValue).toLowerCase()) ||  String(findTitleAbbreviation(gameValue).toLowerCase()).includes(keyValue.toLowerCase());
+              return String(gameValue).toLowerCase().includes(String(keyValue).toLowerCase()) ||  String(findTitleAbbreviation(gameValue|| '')?.toLowerCase()).includes(keyValue.toLowerCase());
             }
             // Comparaison pour des structures plus complexes (tableaux, objets, etc.)
             return isEqual(keyValue, gameValue);
           })
         );
 
-        // Vérifications post-filtrage
-        if (results.length === 0)
-          return reject(new Error(`Aucune données n'a été trouvé pour la requête saisie.`));
 
         // Pagination des résultats
         if (results.length - 1 >= indexFirstGameOfThePage) {
@@ -112,7 +111,7 @@ const findTitleAbbreviation = (str)=>{
           return resolve([]); // Pas de résultats pour cette page
         }
       } catch (e) {
-        return reject(new Error(`Un problème avec la base de données a empêché la récupération des jeux : ${e.message}`));
+        return reject(e);
       }
     });
   },
@@ -160,7 +159,7 @@ const findTitleAbbreviation = (str)=>{
             return reject(new TypeError(`l'attribut user doit être de type objet !!!`));
         }
 
-        return resolve(`L'utilisateur a bien été ajouté.`);
+        return resolve(`The user has been added.`);
 
       } catch(e){
           return reject(new Error(`Problème rencontré lors de l'ajout d'un utilisateur à la bd: ${e.message}`));
@@ -176,24 +175,25 @@ const findTitleAbbreviation = (str)=>{
               const game= mockData["games"].find(game => game.game_id === game_id);
               const user= mockData["users"].find(user => user.user_id === user_id);
 
+              if (!game) return reject (new Error("The game has not been found."));
               user["game_list"].push(game);
-              resolve(`Le jeu a bien été ajouté à la liste de l'user :${user_id}`);
+              resolve(`The game has been added to the user's list.`);
 
             } else {
-              reject(new Error("L'utilisateur n'a pas été trouvé dans la bd."));
+              return reject(new Error("The user has not been found."));
             }
         } else {
-          reject(new Error("Les valeurs passé en paramètres ne sont pas du bon type."));
+          return reject(new TypeError("The values passed as parameters are of the wrong type."));
         }
     
         } catch(e){
-          reject(`Soucis lors de l'ajout à la list: ${e.message}`);
+          reject(e.message);
         }
       })
 
   },
 
-  addComments: (newComment)=>{
+  addComments: (newComment) => {
     return new Promise((resolve,reject)=>{
       try {
         const {comment_content, parent_id, user_id,game_id} = newComment;
@@ -201,7 +201,7 @@ const findTitleAbbreviation = (str)=>{
         if(parent_id !== 0 && !checkIfCommentExist(parent_id)) return reject(new ReferenceError(`Le commentaire parent d'id (${parent_id}) n'existe pas.`));
 
         if(typeof user_id === "number" && typeof parent_id === "number" && typeof comment_content === "string" && typeof game_id === "number"){
-          if(!inUsers(user_id)) reject(new ReferenceError(`L'utilisateur ${user_id} est inexistant.`)); 
+          if(!inUsers(user_id)) reject(new ReferenceError(`The user ${user_id} does not exist.`)); 
 
           if(!checkIfGameExist(game_id)) reject(`Le jeu d'id (${game_id} n'a pas été trouvé.)`); // Vérifie l'existance du jeu.
           
@@ -209,7 +209,7 @@ const findTitleAbbreviation = (str)=>{
           mockData["comments"].push({...newComment,"created_at": new Date()});
 
           //Retourne un message différent selon parent_id.
-          return  parent_id === 0 ? resolve(` Le commentaire de l'user d'id(${user_id} a bien été ajouté au jeu (${game_id}.`) : resolve(` L'user (${user_id} a bien répondu au commentaire d'id (${parent_id}) du jeu  d'id(${game_id}.`);
+          return  parent_id === 0 ? resolve(`Le commentaire de l'user d'id(${user_id} a bien été ajouté au jeu (${game_id}.`) : resolve(` L'user (${user_id} a bien répondu au commentaire d'id (${parent_id}) du jeu  d'id(${game_id}.`);
           
         } else {
             reject(new TypeError(`Un ou plusieurs attributs n'ont pas le bon type de valeur attendue.`)); // Retourne une exception au gestionnaire de la promesse.
@@ -220,6 +220,24 @@ const findTitleAbbreviation = (str)=>{
         }
     })
 },
+
+  delComment: (comment_id) => {
+    return new Promise ((resolve, reject) => {
+      if (!comment_id) return reject (new ReferenceError(`Comment ID is required.`));
+      if (typeof comment_id !== "number") return reject (new TypeError(`Comment ID must to be of number type.`));
+      
+      try {
+        const commentIndex = mockData.comments.findIndex( comment => comment.comment_id === comment_id);
+
+        if (commentIndex === -1) return reject(new Error(`Comment with ID ${comment_id} not found.`));
+        mockData.comments = [...mockData.comments.slice(0, commentIndex), ...mockData.comments.slice(commentIndex + 1) ];
+
+        return resolve (`The comment has been deleted.`);
+      } catch (e) {
+        return reject (e);
+      }
+    })
+  },
 
   hasLikedComment:(user_id,comment_id,game_id)=>{
       const game = mockData["games"].find(game => game.game_id === game_id);
@@ -279,23 +297,26 @@ const findTitleAbbreviation = (str)=>{
   addCommentLike: (user_id,game_id,comment_id)=>{
       return new Promise((resolve,reject) =>{
         try{
-          if(!user_id || !game_id || !comment_id) reject(new Error(`Un ou plusieurs paramètres ne sont pas définis`));
-          if(typeof user_id !== "number" || typeof game_id !== "number" || typeof comment_id !== "number") reject(new Error(`Un ou plusieurs paramètres ne sont pas du bon type.`));
-          if(!inUsers(user_id)) return reject(new Error(`L'user d'id (${user_id}) est inexistant.`));
+          if (!user_id || !game_id || !comment_id) reject (new ReferenceError (`One or many parameter are undefined.`));
+          if (typeof user_id !== "number" || typeof game_id !== "number" || typeof comment_id !== "number") reject (new TypeError (`One or many parameters have wrong type.`));
+          if (!inUsers(user_id)) return reject (new Error (`The user (${user_id}) does not exist.`));
 
           const game = mockData["games"].find(game => game.game_id === game_id);
-          if (!game) return reject(new Error(`Le jeu ${game_id} n'a pas été trouvé.`)); // Si le jeu n'existe pas on rompt la promesse.
+          if (!game) return reject (new Error (`The game ${game_id} was not found.`)); // Si le jeu n'existe pas on rompt la promesse.
 
           const comment = mockData["comments"].find(comment => comment.comment_id === comment_id);
-          if (!comment) return reject(new Error(`Le commentaire ${comment_id} n'a pas été trouvé.`)); // Si le commentaire n'existe pas on rompt la promesse.
+          if (!comment) return reject (new Error (`The comment ${comment_id} was not found.`)); // Si le commentaire n'existe pas on rompt la promesse.
+
+          const like_user_id = comment["likes"].some(like =>  like.user_id === user_id);
+          if (like_user_id) return reject (new Error (`The user ${user_id} has already like the comment ${comment_id} of the game ${game_id}`)); // rompt la promesse si commentaire déjà liké
 
           comment["likes"].push({"user_id":user_id}); // Ajoute le like au commentaire.
           
-          return resolve(`Le commentaire ${comment_id} du jeu ${game_id} a bien été liké par l'user: ${user_id}`); // On achève la promesse.
+          return resolve(`The comment ${comment_id} of the game ${game_id} has been liked by the user: ${user_id}`); // On achève la promesse.
         
 
         } catch(e) {
-            return reject(new Error(`Un soucis n'a pas permis l'ajout du commentaire: ${e.message}`));
+            return reject(e.message);
         }
       })
 
@@ -312,36 +333,51 @@ const findTitleAbbreviation = (str)=>{
       return true;
   },
 
-  deleteCommentLike: (user_id,game_id,comment_id) =>{
-      if(this.hasLikedComment(user_id,comment_id,game_id)){
-          const comment= this.findComment(comment_id,game_id);
-          comment["likes"]=comment["likes"].filter((like)=> like["user_id"] !== user_id);
-      }
-  },
+  deleteCommentLike: (user_id, game_id, comment_id) => {
+    return new Promise((resolve, reject) => {
+        // Check if the user has liked the comment
+        const hasLiked = this.hasLikedComment(user_id, comment_id, game_id);
+        if (!hasLiked) {
+            return reject(new Error("Comment not liked by this user."));
+        }
 
-  deleteResponseLike:(user_id, game_id, comment_id, response_id) =>{
-      if(this.hasLikedResponse(user_id,game_id,comment_id,response_id)){
-          const comment=this.findComment(comment_id,game_id);
-          if(!comment) return false;
+        // Find the comment in the specified game
+        const comment = this.findComment(comment_id, game_id);
+        if (!comment) {
+            return reject(new Error("Comment not found in the specified game."));
+        }
 
-          const response=comment["responses"].find((response)=> response["response_id"] === response_id);
-          if(!response) return false;
+        // Remove the like from the comment's likes array
+        comment.likes = comment.likes.filter((like) => like.user_id !== user_id);
 
-          response["likes"]=response["likes"].filter((like)=> like["user_id"] !== user_id);
-          return true;
+        // Resolve the promise with a success message
+        resolve("Comment like removed successfully.");
+    });
+},
+
+  // deleteResponseLike:(user_id, game_id, comment_id, response_id) =>{
+  //     if(this.hasLikedResponse(user_id,game_id,comment_id,response_id)){
+  //         const comment=this.findComment(comment_id,game_id);
+  //         if(!comment) return false;
+
+  //         const response=comment["responses"].find((response)=> response["response_id"] === response_id);
+  //         if(!response) return false;
+
+  //         response["likes"]=response["likes"].filter((like)=> like["user_id"] !== user_id);
+  //         return true;
 
           
-      }
-  },
+  //     }
+  // }
 
-  findUser: (user_email) => {
+  findUser: (user_info) => {
     return new Promise((resolve, reject) => {
       try {
-        if(!user_email) return reject(new ReferenceError(`Aucun mail n'a été spécifié.`));
-        if(typeof user_email !== "string") return reject(new TypeError(`L'attribut user_email doit être de type string !!!`));
+        if(!user_info) return reject(new ReferenceError(`No user information specified.`));
+        if(typeof user_info !== "string" &&  typeof user_info !== "number") return reject(new TypeError(`Wrong type of parameter.`));
 
         const user = mockData["users"].find(
-          (user) => user["email"] === user_email
+          (user) => user["email"] === user_info || user["user_id"] === user_info
         );
         if (user) {
           return resolve(user);
@@ -352,18 +388,26 @@ const findTitleAbbreviation = (str)=>{
           return reject(new Error(`Une erreur est survenue lors de la récupération d'un user: ${e.message}`));
       }
     });
-  },
+  }
+,
 
   changePassword: (user_id,new_password) =>{
     return new Promise((resolve,reject) => {
       try{
-        if(!user_id || !new_password) return reject(ReferenceError(`Un ou plusieurs paramètres ne sont pas définis.`));
-        if(typeof user_id !== "number" || typeof new_password !== "string") return reject(TypeError(`Un ou plusieurs paramètres ne sont pas du bon type.`));
-        
+        if(inUsers(user_id)){
           const user = mockData["users"].find(user => user.user_id === user_id);
-          user.pass=new_password;
-          return resolve(`Le mot de pass de l'user ${user_id} a bien été changé.`);
-        
+
+          if(user.pass !== new_password){
+            user.pass=new_password;
+            return resolve(`Le mot de pass de l'user ${user_id} a bien été changé.`);
+
+          } else {
+            return reject(new Error(`Le nouveau mot de passe doit être différent de l'ancien !!!`));
+          }
+
+        } else {
+          return reject(new Error(`L'utilisateur ${user_id} n'est pas connu.`));
+        }
       } catch (e) {
           return reject(new Error(`Une erreur n'a pas permis le changement de mot de passe. Erreur: ${e.message}`));
       }
@@ -391,7 +435,8 @@ const findTitleAbbreviation = (str)=>{
       try{
         if(typeof genre !== "string") reject(new Error(`L'argument genre doit être une chaîne de caractères.`));
         if(genre.trim() === "") reject(new Error(`La chaîne ne doit pas être vide !!!`));
-        let games=mockData["games"].filter((game) => game.genres.includes(genre) );
+        let games=mockData["games"].filter((game) => game.genres?.includes(genre) );
+        console.log(games)
         if(games.length === 0) reject(new Error(`Aucun jeux de type ${genre} n'a été trouvé.`));
         games.sort((a,b) => b.total_rating - a.total_rating);
         return resolve(games.slice(0,10));
@@ -401,6 +446,8 @@ const findTitleAbbreviation = (str)=>{
       }
     })
   },
+
+  
 
   mostRecentGame:(game_type, page_number) => {
     return new Promise ((resolve,reject) => {
@@ -432,5 +479,95 @@ const findTitleAbbreviation = (str)=>{
           return reject(`Une erreur n'a pas permis la récupération des jeux les plus récents : ${e.message}`);
       }
     })
+  },
+
+  delUser:(user_id) => {
+    return new Promise((resolve, reject) => {
+      if (!user_id) return reject(new Error('please provide a user ID.')) ;
+
+      try {
+          const user_index = mockData.users.findIndex(user => user.user_id === user_id);
+
+          mockData.users.splice(user_index, 1);
+    
+          return resolve('The user has been deleted.');
+
+      } catch(e) {
+        return reject(e);
+      }
+    })
+  },
+
+  addToken : (type, token) => {
+    return new Promise((resolve, reject) => {
+      // Ensure required arguments are provided
+      if (!type || !token) {
+        return reject(new Error('Arguments missing. Both "type" and "token" are required.'));
+      }
+  
+      // Validate "type" as a string and check allowed values
+      if (typeof type !== 'string') {
+        return reject(new Error('The "type" argument must be a string.'));
+      }
+      const validTypes = ['access', 'refresh'];
+      if (!validTypes.includes(type)) {
+        return reject(new Error(`Invalid "type" value. Allowed values are: ${validTypes.join(', ')}.`));
+      }
+  
+      // Schema definition for token validation
+      const schema = {
+        token: 'string', // Token must be a string
+        userId: 'number', // Simulates an ObjectId (string in this case)
+        createdAt: 'object', // Must be a Date object
+        expiredAt: 'object', // Must be a Date object
+        isRevoked: 'boolean', // Must be a boolean
+        revokedAt: 'object', // Must be a Date object or null
+        ipAddress: 'string', // IP address must be a string
+        deviceInfo: 'object', // Device information must be a string
+      };
+  
+      // Validate each property of the token against the schema
+      for (const [key, expectedType] of Object.entries(schema)) {
+        const value = token[key];
+  
+        // Check if the property is defined
+        if (value === undefined) {
+          return reject(new Error(`Missing property "${key}" in token.`));
+        }
+  
+        // Special handling for null values (e.g., revokedAt can be null)
+        if (value === null && key === 'revokedAt') continue;
+  
+        // Validate the type of each property
+        if (typeof value !== expectedType) {
+          return reject(
+            new Error(`Invalid type for property "${key}". Expected: ${expectedType}, but got: ${typeof value}.`)
+          );
+        }
+  
+        // Additional checks for Date objects
+        if (expectedType === 'object' && key.includes('At') && !(value instanceof Date)) {
+          return reject(new Error(`Invalid type for "${key}". Expected a Date object.`));
+        }
+      }
+  
+      // If all validations pass, add the token to the mock data
+      mockData.tokens.push({
+        token: token.token,
+        type,
+        userId: token.userId,
+        createdAt: token.createdAt,
+        expiredAt: token.expiredAt,
+        isRevoked: token.isRevoked,
+        revokedAt: token.revokedAt,
+        ipAddress: token.ipAddress,
+        deviceInfo: token.deviceInfo,
+      });
+  
+      // Resolve the promise to confirm successful addition
+      resolve('Token added successfully.');
+    });
   }
 }
+
+export default mongomock;

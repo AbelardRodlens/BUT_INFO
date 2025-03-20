@@ -12,7 +12,8 @@
     height: 800px;
     max-width: 85%;
     border-radius: 15px;
-    margin: 0 auto;
+    margin: 0px auto; /* Réduit les marges autour du carrousel */
+  
     overflow: hidden;
    
     transition: all 0.3s ease; 
@@ -153,16 +154,17 @@
 @media (min-width: 769px) {
     .carousel-container {
       grid-template-columns: repeat(3, 1fr); /* Trois carrousels par ligne */
-      gap: 30px; /* Espacement entre les carrousels */
       justify-items: center; /* Centre les carrousels dans leur conteneur */
     }
   
     .carousel {
-      height: 40vw; /* Hauteur proportionnelle à la largeur de la fenêtre */
-      max-height: 1000px; /* Limite la hauteur sur les très grands écrans */
-      max-width: 85%; /* Réduit la largeur si la fenêtre est trop grande */
-      margin: 10px auto; /* Centre le carrousel dans sa colonne */
+      height: 35vw; /* Réduction de la hauteur proportionnelle à la largeur */
+      max-height: 600px; /* Limite fixe pour éviter un carrousel trop grand */
+      max-width: 70%; /* Réduit la largeur à 60% de l'écran */
+      margin: 20px auto; /* Centre le carrousel horizontalement */
+  
     }
+  
   }
 
   /* Pour les écrans moyens (tablettes) */

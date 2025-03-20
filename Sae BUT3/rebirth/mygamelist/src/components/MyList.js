@@ -1,5 +1,8 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function MyList(){
+    const navigate = useNavigate();
     useEffect(() => {
         const fetchGames = async () => {
             const response = await fetch("http://localhost:5001/mygamelist?user_id=3316",
@@ -12,24 +15,36 @@ export default function MyList(){
                 }
             )
 
-            const data = await response.json();
-            if (data.newAccesToken) {
-                localStorage.setItem('accessToken', data.newAccesToken);
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.newAccesToken) {
+                    localStorage.setItem('accessToken', data.newAccesToken);
+                }
+
+                return data.gameList;
+            } else {
+                navigate('/login');
             }
 
-            return data.gameList;
+            return null;
+
+            
         }
         
         const displayGames = async () => {
             const gameList = await fetchGames();
-            const ul = document.querySelector("ul");
+            
+            if (gameList) {
+                const ul = document.querySelector("ul");
 
-            gameList.forEach(game => {
-                let li = document.createElement('li');
-                li.textContent = game;
+                gameList.forEach(game => {
+                    let li = document.createElement('li');
+                    li.textContent = game;
 
-                ul.appendChild(li); 
-            });
+                    ul.appendChild(li); 
+                });
+            } 
         }
 
         displayGames();

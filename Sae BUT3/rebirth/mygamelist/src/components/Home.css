@@ -1,5 +1,5 @@
 body {
-  font-family: 'Rudik', Arial, sans-serif;
+
   margin: 0;
   background-color: #0e0f10;
   color: white;
@@ -7,9 +7,163 @@ body {
 }
 
 .home {
-  padding: 20px;
+  padding: 25px;
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5%;
+  margin-bottom: 2%;
+  padding-left: 15px;
+  padding-top: 20px;
+}
+.logo {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+
+
+/* Alignement des icônes dans le header */
+.nav-text {
+  display: flex; /* Affiche toujours le texte par défaut */
+  align-items: center;
+  gap: 50px; /* Espacement entre les icônes */
+  margin-right: 2%;
+
+  font-family: 'Roboto', sans-serif;
+  }
+
+
+.nav-icons .icon:hover {
+  transform: scale(1.1); /* Animation légère au survol */
+}
+/* Styles pour le texte des éléments du menu */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Espacement entre l'icône et le texte */
+  font-family: 'Roboto', 'sans-serif';
+  font-size: 14px; /* Taille ajustée */
+  background-color: transparent;
+  border: none;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.nav-item:hover {
+  color: #007bff; /* Changement de couleur au survol */
+}
+
+
+
+.responsive-only {
+  display: none; /* Masque les icônes par défaut */
+}
+/* Pop-up */
+/* Appliquer la police 'Rudik' */
+.popup {
+  position: absolute;
+  top: 100%; /* Le positionner juste en dessous du logo */
+  left: 50%; /* Centrer horizontalement */
+  transform: translateX(-50%); /* Centrer parfaitement en ajustant par rapport à 50% */
+  background-color: #22262a;
+  padding: 15px; /* Un peu plus d'espace autour du contenu */
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
+  z-index: 1000;
+  width: 250px; /* Largeur augmentée */
+
+  font-family: 'Rudik', Arial, sans-serif; /* Appliquer la police */
+}
+
+.popup ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.popup li {
+  padding: 10px 0; /* Espacement entre les éléments */
+  cursor: pointer;
+  background-color: #2a2f34; /* Fond légèrement plus clair pour chaque classement */
+  border-radius: 5px; /* Bords arrondis pour chaque élément */
+  transition: background-color 0.3s ease;
+  margin-bottom: 5px; /* Espacement entre chaque élément */
+}
+
+.popup li:hover {
+  text-decoration: underline;
+  background-color: #3a4349; /* Fond plus clair lors du survol */
+}
+
+/* Bouton "Voir plus" */
+.voir-plus-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  background-color: #007bff; /* Couleur bleue */
+  color: white;
+  padding: 8px; /* Taille réduite */
+  font-size: 14px; /* Taille réduite */
+  font-family: 'Roboto', 'sans-serif';
+  text-align: center;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.voir-plus-btn:hover {
+  background-color: #0056b3; /* Changement de couleur au survol */
+}
+
+/* Lorsque le pop-up est visible */
+.popup.visible {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s; /* Pop-up visible immédiatement */
+}
+
+/* Liste des éléments du classement dans le pop-up */
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+}
+
+.ranking-list li {
+  padding: 8px; /* Un peu plus de padding pour un meilleur confort visuel */
+  cursor: pointer;
+}
+
+.ranking-list li:hover {
+  background-color: #007bff;
+}
+
+
+
+/* Ajout de styles pour les couronnes */
+.crown-icon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 30px;
+  height: 30px;
+}
+
+
+/* Header */
 .header {
   display: flex;
   justify-content: space-between;
@@ -21,9 +175,12 @@ body {
 }
 
 
+
+
+
 .logo-text {
   display: inline-block;
-  font-size: 2rem;
+  font-size: 30px;
   font-weight: bold;
   color: white;
 }
@@ -60,19 +217,9 @@ body {
   transform: rotate(180deg);
 }
 
-
-
-
-
-.nav-icons {
-  display: flex;
-  gap: 30px; /* Espacement plus grand entre les icônes */
-  margin-right: 2%; /* Ajouter un peu de marge à droite */
-}
-
 .nav-icons img {
-  width: 25px; /* Augmenter la taille des icônes */
-  height: 25px;
+  width: 20px; /* Augmenter la taille des icônes */
+  height: 20px;
 }
 
 /* Section couverture */
@@ -189,7 +336,7 @@ body {
 .footer-links ul li a {
   color: #ddd;
   text-decoration: none;
-
+  font-family: 'Roboto', 'sans-serif';
 }
 
 .footer-links ul li a:hover {
@@ -208,7 +355,7 @@ body {
 .social-icon {
   color: #ddd;
   text-decoration: none;
-  font-size: 1.2rem;
+  font-size: 16px;
 }
 
 .social-icon:hover {
@@ -222,7 +369,83 @@ body {
   padding-bottom: 10px;
 }
 
+/* Style général pour le pop-up */
+.ranking-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.8); /* Fond sombre avec transparence */
+  border-radius: 10px;
+  color: white;
+  position: absolute;
+  top: 50px; /* Distance par rapport au haut de l'écran */
+  left: 50%;
+  transform: translateX(-50%); /* Centrer horizontalement */
+  width: 300px; /* Largeur fixe */
+  z-index: 100; /* Assurer que le pop-up soit devant */
+}
 
+/* Titre principal du pop-up */
+.ranking-popup h3 {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* Bloc contenant les éléments de classement */
+.ranking-block {
+  width: 100%;
+}
+
+/* Liste d'éléments de classement */
+.ranking-block ul {
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+}
+
+
+
+
+
+/* Style du titre de chaque bloc */
+.ranking-title {
+  font-size: 16px;
+  text-align: center;
+  color: #fff;
+  font-weight: bold;
+}
+
+
+/* Styles supplémentaires pour s'assurer que les éléments sont bien espacés et lisibles */
+.ranking-block li {
+  padding: 10px;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Style global du pop-up au survol */
+.ranking-popup:hover {
+  background-color: rgba(0, 0, 0, 0.9); /* Augmenter l'opacité au survol */
+}
+
+/* Animation pour le pop-up qui apparaît et disparaît */
+@keyframes popup-animation {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ranking-popup {
+  animation: popup-animation 0.5s ease-in-out; /* Animation de transition */
+}
 
 
 
@@ -241,11 +464,12 @@ body {
 }
 /* Pour les écrans moyens (tablettes) */
 @media (max-width: 768px) {
-  .header {
-    padding-left: 0;  /* Aucune marge à gauche */
-    margin-left: 0;  
-    margin-bottom: 10px;
-    margin-top: -5%;
+
+
+  .popup {
+    top: 50px;
+   
+    padding: 10px;
   }
 
     .logo-img {
@@ -279,7 +503,25 @@ body {
   .sub-title {
     font-size: 1rem;
   }
-  
+  .nav-text {
+    display: none; /* Masque le texte */
+  }
+
+  .responsive-only {
+    display: inline-block; /* Affiche les icônes */
+  }
+
+  .nav-icons {
+    justify-content: flex-end; /* Maintient les icônes alignées à droite */
+    flex-direction: row; /* Assure une disposition en ligne */
+    gap: 15px; /* Réduit l'espacement entre les logos */
+  }
+
+
+  .logo-text {
+    font-size: 16px; /* Réduit la taille du logo pour s'adapter */
+    margin-right: auto;
+  }
 }
 
 /* Pour les petits écrans (mobiles) */
@@ -295,4 +537,102 @@ body {
    .secondary-title {
     display: none; /* Cache uniquement la deuxième partie du titre */
   }
+  .popup {
+    font-size: 12px;
+  }
+
+  .voir-plus-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
 }
+
+/* Pour les écrans moyens (tablettes) */
+@media (max-width: 768px) {
+  .nav-icons {
+    justify-content: flex-end; /* Aligne les logos à droite */
+    flex-direction: row; /* Assure une disposition en ligne */
+    gap: 15px; /* Espacement entre les logos */
+  }
+
+  .logo-text {
+    margin-right: auto; /* Le texte du logo reste aligné à gauche */
+  }
+}
+
+/* Pour les écrans petits (mobiles) */
+@media (max-width: 480px) {
+  .nav-icons {
+    justify-content: flex-end; /* Aligne les logos à droite */
+    gap: 10px; /* Ajuste l'espacement entre les icônes si nécessaire */
+  }
+}
+
+/* Style par défaut (bureau) */
+.nav-icons {
+  display: flex;
+  justify-content: flex-end; /* Aligne les icônes à droite */
+  align-items: center;
+  gap: 50px; /* Espacement entre les icônes */
+  margin-right: 2%;
+}
+
+/* Mode responsive : écran moyen (tablettes) */
+@media (max-width: 768px) {
+  .nav-icons {
+    justify-content: flex-end; /* Toujours aligné à droite */
+  }
+
+  .logo-text {
+    margin-right: auto; /* Assure que le texte "GameVerse" reste à gauche */
+  }
+}
+
+/* Mode responsive : écran petit (mobiles) */
+@media (max-width: 480px) {
+  .nav-icons {
+    flex-wrap: wrap; /* Permet un retour à la ligne si nécessaire */
+    justify-content: flex-end;
+    gap: 20px; /* Ajuste l'espacement entre les icônes */
+    
+  }
+}
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo-text {
+  font-size: 30px; /* Taille du texte */
+  font-weight: bold;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1.5px;
+  display: block; /* Assurez-vous qu'il est affiché */
+
+}
+
+@media (max-width: 768px) {
+  .logo-text {
+    margin-left: -5%;
+    display: block; /* Force l'affichage */
+    margin-right: auto; /* Aligne le texte à gauche */
+  }
+
+  .nav-icons {
+    justify-content: flex-end; /* Les icônes restent alignées à droite */
+    gap: 20px;
+  }
+}
+
+
+.logo-container {
+  flex: 1; /* Prend l'espace disponible pour aligner à gauche */
+}
+
+.nav-icons {
+  flex-shrink: 0; /* Les icônes ne rétrécissent pas */
+  display: flex;
+  justify-content: flex-end; /* Alignement à droite */
+
+  font-family: 'Roboto', 'sans-serif';
+} 

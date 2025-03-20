@@ -7,16 +7,18 @@ function ChangePasswordPage() {
     <div className="auth-page">
       {/* Section gauche : texte d'accueil */}
       <div className="welcome-section">
-        <h1>Bienvenue sur GameVerse</h1>
-        <p>Vous avez oublié votre mot de passe ? Réinitialisez-le ci-dessous.</p>
+      <h1>Bienvenue sur <Link to="/" className="gameverse-link"> GameVerse</Link></h1>
+        <p>Vous avez oublié votre mot de passe ? Réinitialisez-le.</p>
       </div>
 
       {/* Section droite : formulaire de changement de mot de passe */}
       <div className="login-section">
         <h2>Changer le mot de passe</h2>
         <form>
-          <input type="email" placeholder="Email" />
-          <input type="password" placeholder="Nouveau mot de passe" />
+        <div class="input-group">
+        <input type="email" id="email" class="input" required />
+        <label for="email" class="user-label">Email</label>
+      </div>
           <button type="submit">Changer le mot de passe</button>
         </form>
         <p>

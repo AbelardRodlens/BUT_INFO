@@ -1,41 +1,40 @@
 import express from 'express';
 import cors from 'cors';
 // import mongoose, { mongo } from 'mongoose';
-import { mongomock } from './mongomock.js'; // Database mocké.
+import * as utils from './app_functions.js';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto-js';
 import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser'; 
-import nodemailer from 'nodemailer';
-import useragent from 'useragent';
-import mongoose from 'mongoose';
 
 
-mongoose.connect("mongodb://127.0.0.1:27017/gameverse", { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("Connecté à MongoDB avec succès!"))
-  .catch(err => console.error("Erreur de connexion à MongoDB :", err));
 
-  const tokenSchema = new mongoose.Schema({
-    token: { type: String, required: true },
-    type: { type: String, enum: ['access', 'refresh'], required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    createdAt: { type: Date, default: Date.now },
-    expiredAt: { type: Date },
-    isRevoked: { type: Boolean, default: false },
-    revokedAt: { type: Date, default: null },
-    ipAddress: { type: String },
-    deviceInfo: { type: String },
-  });
+
+
+
+// mongoose.connect("mongodb://127.0.0.1:27017/gameverse", { useNewUrlParser: true, useUnifiedTopology: true })
+//   .then(() => console.log("Successfully connected to MongoDB!"))
+//   .catch(err => console.error("Connection error to MongoDB:", err));
+
+//   const tokenSchema = new mongoose.Schema({
+//     token: { type: String, required: true },
+//     type: { type: String, enum: ['access', 'refresh'], required: true },
+//     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+//     createdAt: { type: Date, default: Date.now },
+//     expiredAt: { type: Date },
+//     isRevoked: { type: Boolean, default: false },
+//     revokedAt: { type: Date, default: null },
+//     ipAddress: { type: String },
+//     deviceInfo: { type: String },
+//   });
   
-  const TokensCollection = mongoose.model('Tokens', tokenSchema);
+//   const TokensCollection = mongoose.model('Tokens', tokenSchema);
 
 const app = express();
 
-// Charger le fichier d'environnement, contenant les clés secrètes.
-dotenv.config({ path: '/home/rds/Desktop/rebirth/mygamelist/server/secret_keys.env' });
+//  Load the environment file containing the secret keys.
+dotenv.config({ path: '/home/rds/Desktop/rebirth/mygamelist/server/secret_keys.env' }); // Didn't work with a relative path, so you'll have to adapt it to your system.
 
-app.use(express.json()); // pour analyser le JSON des requêtes.
+app.use(express.json()); // to analyze JSON queries.
 
 // Configuration Cors
 const corsOptions = {
@@ -44,7 +43,7 @@ const corsOptions = {
     allowedHeaders:['Content-Type', 'Authorization'] //En-têtes autorisés.
   };
 
-  app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET)); // Facilite l'accès aux cookies.
@@ -56,60 +55,30 @@ const options = {
     
 };
 
-
-const checkIfEmailIsValid = (email) => {
-    const emailRegex = /^(?=.{1,55}$)[a-zA-Z0-9](?!.*\.\.)[a-zA-Z0-9._%+-]{0,62}@[a-zA-Z0-9.-]{1,63}\.[a-zA-Z]{2,6}$/;
-
-    return emailRegex.test(email);
-}
-
-const checkIfUserNameIsValid = (username) => {
-    const usernameRegex = /^(?=.{7,25}$)(?!.*--)(?!.*([a-zA-Z])\1\1)[a-zA-Z0-9](?!.*-$)[a-zA-Z0-9-]*[a-zA-Z0-9]$/;
-
-    return usernameRegex.test(username);
-}
-
-const checkIfPassIsValid = (password) => {
-    const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
-
-    return passRegex.test(password);
-
-}
-
-const hashPassword = async (password) => {
-    try{
-        const saltRounds=10; // Nb de tours pour gen le sel (plus il est élévé, plus c'est sécurisé).
-        const hashPassword = await bcrypt.hash(password, saltRounds);
-        return hashPassword
-
-    } catch(e){
-        return e;
-    }
-    
-}
-
+// Check the validity of the accessToken
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
-    // Vérifier la présence de l'en-tête Authorization.
+    // Check for the presence of the Authorization header.
     if (!authHeader){
-        return res.status(401).json({ message: `Unauthorized: L'action effectué nécessite d'être connecté.` }); // Retourne une reponse avec un status 401 et un message de non authorisation.
+        return res.status(401).json({ message: `Unauthorized: The request does not contain an Authorization header.` }); // Returns a response with a 401 status and a non-authorization message.
     }
 
-    // Extraire le token.
+    // Extract the accesToken.
     const accessToken = authHeader.split(' ')[1];
+
     try {
-        // Vérifier et décoder le JWT.
+        // Check and decoded the accesToken
         const decoded_data = jwt.verify(accessToken, process.env.ACCES_JWT_SECRET);
-        console.log("decoded_data",decoded_data)
-        // Ajouter les données utilisateur dans la requête.
+        
+        // Add the user's datas in the request
         req.user =  decoded_data;
-        next(); // Passe au middleware ou à la route suivant.
+        next(); // Goes to the next middleware or route.
     } catch (e) {
-        if (e.name === 'TokenExpiredError' || e.name === "JsonWebTokenError") {
-            return refreshAccesToken(req, res, next); // Appeler le middleWare de rafraîchissement.
+        if (e.name === 'TokenExpiredError' || e.name === 'JsonWebTokenError') {
+            return refreshAccesToken(req, res, next); // Call the refreshing middleware.
         } else {
-            return res.status(401).json({ error: 'Token invalide'});
+            return res.status(401).json({ message: 'invalid Token', redirectUrl: '/login'});
         }
     }
     
@@ -122,11 +91,11 @@ const refreshAccesToken = (req, res, next) => {
     if (refreshToken) {
         jwt.verify(refreshToken, process.env.REFRESH_JWT_SECRET, (error, decoded) => {
             if (error) {
-                res.status(401).json({message:'refreshToken inexistant',redirectUrl: 'http://localhost:3000/'});
+                return res.status(401).json({message:'Invalid refreshToken',redirectUrl: '/login'});  
             } else {
                 const newAccessToken = jwt.sign({
-                    ...req.user, // Récupérer les données de l'ancien accessToken.
-                    "csrf_token":crypto.lib.WordArray.random(32).toString(crypto.enc.Hex)
+                    ...req.user, // Retrieve data from the old accessToken.
+
                 }, process.env.ACCES_JWT_SECRET, options);
 
                 req.newAccesToken = newAccessToken;
@@ -134,7 +103,7 @@ const refreshAccesToken = (req, res, next) => {
         });
         next();
     } else {
-        res.status(401).json({ message:'Refresh Token manquant.' ,redirectUrl: 'http://localhost:3000/', removeAccessToken:true});
+        res.status(401).json({ message:'Refresh Token missing.' ,redirectUrl: '/login', removeAccessToken:true}); 
     }
 }
 
@@ -142,58 +111,58 @@ const checkIfTokenRevoked = async (req, res, next) => {
     const accessToken = req.headers.authorization.split(" ")[1];
     const refreshToken = req.signedCookies.refreshToken;
 
-    if (accessToken && refreshToken) {
-        try {
-            const accessTokenIsRevoked = await TokensCollection.findOne({token: accessToken, isRevoked: true});
-            const refreshTokenIsRevoked = await TokensCollection.findOne({token: refreshToken, isRevoked: true});
+    // if (accessToken && refreshToken) {
+    //     try {
+    //         const accessTokenIsRevoked = await TokensCollection.findOne({token: accessToken, isRevoked: true});
+    //         const refreshTokenIsRevoked = await TokensCollection.findOne({token: refreshToken, isRevoked: true});
 
-            if (accessTokenIsRevoked || refreshTokenIsRevoked) {
-                return res.status(401).json({message:`Unauthorized: acces or refresh token are revoked.`});
-            }
+    //         if (accessTokenIsRevoked || refreshTokenIsRevoked) {
+    //             return res.status(401).json({message:`Unauthorized: acces or refresh token are revoked.`});
+    //         }
 
-            next();
-        } catch(e) {
-            return res.status(500).json({message:`problem encountered during operation.`});
-        }
+    //         next();
+    //     } catch(e) {
+    //         return res.status(500).json({message:`problem encountered during operation.`});
+    //     }
         
-    } else {
-        return res.status(401).json({message:`Unauthorized: no tokens found.`});
-    }
+    // } else {
+    //     return res.status(401).json({message:`Unauthorized: one or several tokens token are missing .`});
+    // }
 
 }
 
-const authRequiredRoutes = ['/mygamelist', '/profile', '/settings']; 
+// const authRequiredRoutes = ['/mygamelist', '/profile', '/settings'];                                    Probablement plus utilisé
 
-const checkAuthorization = (req, res, next) => {
-    if (authRequiredRoutes.includes(req.originalUrl) && !req.user) {
-        return res.status(401).json({ message: 'Unauthorized: accès interdit.' });
-    }
-    next();
+// const checkAuthorization = (req, res, next) => {
+//     if (authRequiredRoutes.includes(req.originalUrl) && !req.user) {
+//         return res.status(401).json({ message: 'Unauthorized: accès interdit.' });
+//     }
+//     next();
+// }
+
+const checkCommentCompliance = (req, res, next) => {
+    const comment = req.body.comment_content;
+
+    // Check that the comment_content parameter has been specified
+    if (!comment) return res.status(400).json({ message: 'No comment specified.', status: 400, timestamp: new Date().toString() });
+
+    // Check that the comment does not exceed 1000 characters
+    if (comment.length > 1000) return res.status(400).json({ message: 'The comment exceed thousand characters.', status: 400, timestamp: new Date().toString() });
+
+    // Check that the comment is not an forbidden word (Collection of banwords ?)
+
+    next(); // Go to the next path
 }
 
 
-
-// Configuration du transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER, // Mail
-        pass: process.env.EMAIL_PASS, // MDP d'application
+const checkIfNewAccessToken = (req) => {
+    if (req.newAccesToken) {
+        return {newAccessToken: req.newAccesToken}
     }
-});
-
-export const sendRecoveryMail = (to, text) => {
-    const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to, 
-        subject:"MangaVerse procédure de récupération de mot de passe.",
-        text,
-    };
-
-    return transporter.sendMail(mailOptions);
 }
 
-app.get('/search_game', (req,res)=>{
+
+app.get('/search_game', async (req,res)=>{
     const {title, platforms, genres, developers, publishers, game_modes, themes} = req.query;
 
     const game_id = Number(req.query.game_id);
@@ -202,66 +171,65 @@ app.get('/search_game', (req,res)=>{
 
     const params_to_verify = { title, game_id, platforms, genres, developers, publishers, game_modes, themes }; // Filtres à vérifier.
 
-    const filters={}; // Filtres qui vont être utilisés.
+    try {
+        const games = await utils.searchGame(params_to_verify, page_number);
+        res.json({data:games});
+        
+    } catch (e) {
 
-    Object.entries(params_to_verify).forEach(([key,value]) =>{
-        if(value) filters[key] = value; // Ajoute le filtre si défini.
-    });
-
-
-    mongomock.findGames(filters,page_number).then(games=>{
-        console.log(games);
-        res.json(games);
-    }).catch(error =>{
         let statusValue;
         switch(true){
-            case (error instanceof TypeError) || (error instanceof ReferenceError):
+            case (e instanceof TypeError) || (e instanceof ReferenceError):
                 statusValue=400;
                 break;
-            case(error.message === `Aucune données n'a été trouvé pour la requête saisie.`):
+            case(e.message === `Aucune données n'a été trouvé pour la requête saisie.` ):
                 statusValue=404;
                 break;
             default:
                 statusValue=500;
         }
 
-        res.status(statusValue).json({message:error.message, status:error.status, timestamp:error.timestamp});
-    })
+        res.status(statusValue).json({message:e.message, status:e.status, timestamp:e.timestamp});
+    }
+        
+    
+        
+ 
 
 });
 
-app.get('/mygamelist', verifyToken, checkIfTokenRevoked, (req, res) => {
-    const user_id = Number(req.query.user_id);
-    const response ={};
+app.get('/gamelist/:user_id?', verifyToken, checkIfTokenRevoked, async (req, res) => {
+    let user_id = Number(req.params.user_id);  // Retrieving user_id from the route parameters
 
-    if (req.newAccesToken) {
-        response['newAccesToken'] = req.newAccesToken;
-    }
-    mongomock.userGameList(user_id)
-        .then(gameList => {
+    // If user_id is not provided in the parameters, use the user_id from the token
+    if (!user_id) user_id = req.user.user_id;
 
-            if (gameList === null || gameList.length === 0) {
-                res.status(404).json({ message: "Aucun jeu trouvé pour cet utilisateur." });
-            } else {
-                res.status(200).json({...response, gameList});
-            }
-        })
-        .catch(error => {
+    try {
+        // Call the getUserGameList function
+        const userGameList = await utils.getUserGameList(user_id);   
 
-            let statusValue;
+        // Send the response back with the game list
+        res.status(200).json({data: userGameList, ...checkIfNewAccessToken(req)});
 
-            if( error instanceof TypeError || error instanceof ReferenceError){
-                statusValue=400;
-            } 
-            else if(error.message === `L'utilisateur d'id (${user_id}) n'a pas été trouvé.`){
-                statusValue=404;
-            } 
-            else {
-                statusValue=500;
-            }
-            
-            res.status(statusValue).json({message:error.message, status:error.status, timestamp:error.timestamp});
+    } catch (e) {
+        // Determine the appropriate status code based on the error
+        let statusValue;
+
+        if (e instanceof TypeError || e instanceof ReferenceError) {
+            statusValue = 400;
+        } else if (e.message === `No games found for this user.` || e.message === 'Your request could not be processed, please check again.') {
+            statusValue = 404;
+        } else {
+            statusValue = 500;
+        }
+
+        // Send the error response
+        res.status(statusValue).json({
+            message: e.message,
+            status: e.status,
+            timestamp: e.timestamp,
         });
+    }
 
 });
 
@@ -269,386 +237,369 @@ app.post('/add_user', async (req,res)=>{
 
     const {user_email, user_username, user_pass} = req.body;
 
-    if(!user_email || !user_username || !user_pass) return res.status(400).json({message:`Un ou plusieurs paramètres sont manquants.`, status:400, timestamp: new Date().toDateString()});
+    if(!user_email || !user_username || !user_pass) return res.status(400).json({message:`One or more parameters are missing.`, status:400, timestamp: new Date().toString()});
 
-    if(!checkIfEmailIsValid(user_email)) {
-        return res.status(500).json({
-            message: `Email invalid.`,
-            status:500,
-            timestamp:new Date().toDateString()
-        })
-    };
+    try {
+       
+        const response = await utils.addUser(user_email, user_pass, user_username);
 
-    if(!checkIfUserNameIsValid(user_username)) { 
-        return res.status(500).json({
-            message: `Username invalid.`,
-            status:500,
-            timestamp:new Date().toDateString()
-        })
-    };
+        // Have to send verification mail
 
-    if(!checkIfPassIsValid(user_pass)) {
-        return res.status(500).json({
-            message: `Mot de passe trop simple et/ou trop court.`,
-            status:500,
-            timestamp:new Date().toDateString()
-        });
-    };
-    
-    const hashPass= await hashPassword(user_pass);
 
-    mongomock.addUser({"email":user_email, "pass":hashPass, "username":user_username,"Game_list":[],"profile_picture":""}).then(promise_response=>{
-        res.json(promise_response);
+        res.json({data:response});
 
-    }).catch(error =>{
-
+    } catch(e) {
         let statusValue;
 
-        if(error instanceof TypeError){
-            statusValue=500;
-        }
-        else if(error.message === `L'email saisie n'est pas disponible.` || error.message === `L'username saisie n'est pas disponible.`){
+        if (e.message === 'Email or username already taken.'){
             statusValue=409;
         }
-        else if(error.message === `Un ou plusieurs paramètres sont manquants.`){
+        else if (e.message === "missing arguments." || e.message === "Wrong type arguments." || e.message.includes("Invalid")){
             statusValue=400;
         }
         else{
             statusValue=500;
         }
 
-        res.status(statusValue).json({message:error.message, status:error.status, timestamp:error.timestamp});
-    })
+        res.status(statusValue).json({message:e.message, status:e.status, timestamp:e.timestamp});
+    }
+
+    
 
 });
 
-app.get('/login',verifyToken, (req, res) => {
-    // Si l'utilisateur est déjà connecté, redirige-le ailleurs
-    const authHeader = req.headers.authorization;
+app.post('/del_user', verifyToken, checkIfTokenRevoked, async (req, res) => {
+    const user_id = Number(req.user.user_id);
+    const attempt_pass = req.user_pass;
 
-    if(req.user) {
-        const accessToken = req.headers.authorization.split(' ')[1];
-        if (accessToken) {
-            return res.status(200).json({redirectUrl: 'http://localhost:3000/'});
+    if (!user_id) return res.status(400).json({message: 'No user id specified.', status: 400, timestamp: new Date().toString()});
+    if (!attempt_pass) return res.status(400).json({message: 'No password specified.', status: 400, timestamp: new Date().toString()});
+    if (attempt_pass.length > 128) return res.status(400).json({message: 'The information provided is incorrect.', status: 400, timestamp: new Date().toString()});
+
+    try {
+        // Call the delUser function to delete the user
+        const response = await utils.delUser(user_id, attempt_pass);
+
+        // Send a successful response
+        res.status(200).json({data:response});
+    } catch (e) {
+        // Determine the appropriate status code
+        let statusValue;
+
+        if (e.message.includes("specified") || e.message === "The information provided is incorrect.") {
+            statusValue = 400;
+        } else if (e.message.includes("found")) {
+            statusValue = 404;
+        } else {
+            statusValue = 500;
         }
+
+        // Send the error response
+        res.status(statusValue).json({
+            message: e.message,
+            status: e.status,
+            timestamp: e.timestamp,
+        });
     }
+})
+
+app.get('/login', (req, res) => {
+    // Si l'utilisateur est déjà connecté, redirige-le ailleurs
+    if(req.signedCookies.refreshToken) {
+        
+       return res.status(200).json({redirectUrl: '/'});
+      
+    }
+    /** if(req.user) {
+        const accessToken = req.headers.authorization.split(" ")[1];
+        if (accessToken) {
+            return res.status(200).json({redirectUrl: '/'});
+        }
+    } */
 
     if (req.newAccesToken) {
-        console.log(req.newAccesToken);
-        return res.status(200).json({newAccessToken: req.newAccesToken || null, redirectUrl: 'http://localhost:3000/'})
+        return res.status(200).json({newAccessToken: req.newAccesToken || null, redirectUrl: '/'})
     }
     
     res.status(200);
     
   });
 
-app.post('/login_process', (req,res)=>{
-    
-    const user_email = req.body.user_email;
-    const user_pass = req.body.user_pass;
+  app.post('/login_process', async (req, res) => {
+    const { user_email, user_pass } = req.body;
 
-    if(!user_pass) return res.status(400).json({message:`Aucun mot de passe n'a été spécifié.`});
+    try {
+        const { accessToken, refreshToken } = await utils.processLogin(user_email, user_pass, req);
 
-    mongomock.findUser(user_email).then(user_info=>{
-        const user = user_info;
-
-        if(!user) throw new Error(`Les données saisies n'ont pas permis de vous authentifier.`);
-
-        bcrypt.compare(user_pass,user.pass).then( async (isMatch) => {
-            if(isMatch){
-                const agent = useragent.parse(req.headers['user-agent']); // Facilite l'extraction des informations de l'agent.
-
-                const accessToken = jwt.sign({
-                    "user_id":user.user_id,
-                    "user_email":user.user_email,
-                    "photoprofil":user.photoprofil,
-                    "csrf_token":crypto.lib.WordArray.random(32).toString(crypto.enc.Hex)
-                }, process.env.ACCES_JWT_SECRET, options);
-
-                const refreshToken = jwt.sign({},process.env.REFRESH_JWT_SECRET,{
-                    expiresIn: '5d', 
-                    algorithm: 'HS256'
-                });
-            
-                res.cookie('refreshToken', refreshToken, {
-                    httpOnly:true,          // Le cookie ne sera pas accessible depuis le JS.
-                    secure:false,            // Le cookie sera envoyé via le protocol HTTPS. (mettre à true en production)
-                    sameSite:'Lax',      // On accepte que les cookies venant du même domaine (comprend sous-domaines).  
-                    maxAge: 5 * 24 * 60 * 60 * 1000,   // Expiration 5j.
-                    signed: true,
-                    credentials:true,
-                });
-
-                await TokensCollection.create({
-                    token: accessToken, type: "access",
-                    userId: new mongoose.Types.ObjectId(user.user_id),
-                    createdAt: new Date(Date.now()).toUTCString(), expiredAt: new Date(Date.now() + 15 * 60 * 1000).toUTCString(),
-                    ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-                    deviceInfo: agent.device 
-                });
-
-                await TokensCollection.create({
-                    token: refreshToken,
-                    type: "refresh",
-                    userId: new mongoose.Types.ObjectId(user.user_id),
-                    createdAt: new Date(Date.now()).toUTCString(),
-                    expiredAt: new Date(Date.now() + 5 * 24 * 60 * 3600 * 1000).toUTCString(),
-                    ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-                    deviceInfo: agent.device 
-                });
-
-                return res.status(200).json({accessToken});
-            } else {
-                return res.status(401).json({message: `Les données saisies n'ont pas permis de vous authentifier.`})
-            }
-        }).catch(error => {
-            let statusValue;
-
-            if (error instanceof ReferenceError) {
-                statusValue = 400;
-            } else {
-                statusValue = 500;
-            }
-
-            return res.status(statusValue).json({ message: error.message, status: error.status, timestamp: error.timestamp });
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true, // The cookie will not be accessible from JS
+            secure: false,   // The cookie will be only send with HTTPS protocol
+            sameSite: 'Lax',    // accept only cookies who are from same domain
+            maxAge: 5 * 24 * 60 * 60 * 1000,
+            signed: true,
         });
-    
-    }).catch(error =>{
-        let statusValue;
 
-        if (error instanceof ReferenceError) {
-            statusValue = 400;
-        } else {
-            statusValue = 500;
-        }
-        return res.status(statusValue).json({message:error.message, status:error.status, timestamp:error.timestamp});
-    })
+        return res.status(200).json({ data:accessToken });
+    } catch (e) {
+        let status = e.status || 500;
+
+        if(e.message.includes("specified")) status = 400;
         
+        return res.status(status).json({
+            message: e.message || 'Internal server error',
+            status,
+            timestamp: new Date().toISOString(),
+        });
+    }
 });
+
 
 app.post('/logout', verifyToken, async (req,res) => {
     const refreshToken = req.signedCookies.refreshToken;
     const accessToken = req.headers.authorization.split(' ')[1];
 
-    if (refreshToken && accessToken) {
-        await TokensCollection.updateOne(
-            {token: refreshToken},
-            {$set: { isRevoked: true, revokedAt: new Date(Date.now()).toUTCString()}}
-        )
+    try {
+        const response = await utils.logoutProcess(refreshToken, accessToken, req);
 
-        await TokensCollection.updateOne(
-            {token: accessToken},
-            {$set: { isRevoked: true, revokedAt: new Date(Date.now()).toUTCString()}}
-        )
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'Lax',
+            signed: true,
+        });
+
+        res.status(200).json({data:response, redirectUrl: "/", removeAccessToken: true});
+    } catch (e) {
+        res.status(500).json({ message: e.message || 'Internal server error', status: 500 });
     }
-    res.clearCookie('refreshToken',{
-        httpOnly:true,          
-        secure:false,
-        sameSite:'Lax', 
-        signed: true,
-    });
-
-    res.status(200).json({message: `Deconnexion réussie`});
 });
 
-app.get('/fetch_game_comments', (req,res)=>{
+app.get('/fetch_game_comments', async (req,res)=>{
     const game_id = Number(req.query.game_id);
     const page_number = Number(req.query.page_number || 1);
     
-    mongomock.fetchGameComments(game_id,page_number).then(promise_response=>{
+    try {
+        const promise_response = await utils.fetchGameComments(game_id, page_number);
         res.json(promise_response);
-    }).catch(error =>{
+    } catch (e) {
         let statusValue;
 
-        if (error instanceof ReferenceError) {
+        if (e instanceof ReferenceError) {
             statusValue = 400;
-        } 
-        else if(error.message === `Le jeu d'id (${game_id}) n'a pas été trouvé dans la bd.`) {
+        } else if (e.message === `Le jeu d'id (${game_id}) n'a pas été trouvé dans la bd.`) {
             statusValue = 401;
         } else {
             statusValue = 500;
         }
 
-        res.status(statusValue).json({message:error.message, status:error.status, timestamp:error.timestamp});
-    })
+        res.status(statusValue).json({
+            message: e.message,
+            status: e.status,
+            timestamp: e.timestamp,
+        });
+    }
 
 });
 
-app.post('/add_comment', verifyToken, (req,res)=>{
-    const user_id = Number(req.body.user_id);
+app.post('/add_comment', verifyToken, checkCommentCompliance, async (req,res)=>{
+    const user_id = req.user.user_id;
     const comment_content = String(req.body.comment_content);
     const game_id=Number(req.body.game_id);
-    const parent_id = Number(req.body.parent_id) || 0; //Si parent_id est undefined, on assigne 0.
-
-    mongomock.addComments({user_id,comment_content,game_id,parent_id}).then(promise_response=>{
-        res.json(promise_response);
-    }).catch(error =>{
-        let statusValue;
-
-        if(error instanceof ReferenceError) {
-            statusValue = 400;
-        } else {
-            statusValue = 500;
-        }
-        res.status(statusValue).json({message:error.message, status:error.status, timestamp:error.timestamp});
-    })
-    
-});
-
-app.post('/reply_to_comment', verifyToken, (req,res)=>{
-    if(req.session.user_id){
-        const game_id = Number(req.body.game_id);
-        const comment_id=Number(req.body.target_comment_id);
-        const user_id = Number(req.body.user_id);
-        const target_user_id = Number(req.body.target_user_id);
-        const user_comment = req.body.response_content;
-    
-        mongomock.replyToComment(game_id, comment_id, user_id, target_user_id, user_comment).then((promise_response) => {
-            res.json(promise_response);
-        }).catch((error) => {
-            res.status(500).json({message: "Soucis rencontré lors du reply", error});
-        })
-    } else {
-        res.redirect('/')
-    }
-});
-
-app.post('/add_game_to_list', verifyToken, (req,res)=>{
-    const user_id = Number(req.body.user_id);
-    const game_id = Number(req.body.game_id);
-    
-    mongomock.addGameIntoList(user_id,game_id).then((promise_response)=>{
-        res.json(promise_response);
-    }).catch((error)=>{
-        res.status(500).json({message: "Soucis rencontré lors de l'ajout du jeu :",error})
-    })
-   
-});
-
-app.post('/like_comment', verifyToken, (req,res)=>{
-    const user_id = Number(req.body.user_id);
-    const game_id = Number(req.body.game_id);
-    const comment_id= Number(req.body.comment_id);
-    
-    mongomock.addCommentLike(user_id,game_id,comment_id).then((promise_response)=>{
-        res.json(promise_response);
-    }).catch((error)=>{
-        res.status(500).json({message: "Soucis rencontré lors de l'ajout du jeu :",error})
-    })
-   
-});
-
-app.post('/change_password', async (req,res)=>{
-    const { user_email, new_password } = req.body;
-
-    if (!user_email || !new_password) {
-        return res.status(400).json({ message: "Email et nouveau mot de passe sont requis." });
-    }
-
-    if (!checkIfPassIsValid(new_password)) {
-        return res.status(400).json({ message: "Le mot de passe doit contenir au moins 8 caractères, 1 lettre majuscule et un caractère spécial." });
-    }
-
+    const parent_id = Number(req.body.parent_id) || 0; // 0 if parent_id is undefined.
 
     try {
-        // Recherche de l'utilisateur
-        const user = await mongomock.findUser(user_email);
-        if (!user) {
-            return res.status(404).json({ message: "Utilisateur non trouvé." });
+        const response = await utils.addComment(user_id, comment_content, game_id, parent_id);
+        res.json(response);
+    } catch (e) {
+        let statusValue = 500;
+
+        if (e instanceof ReferenceError) {
+            statusValue = 400;
+        } 
+        else if(e.message.includes("found")) {
+            statusValue = 404;
         }
 
-        // Vérification si le mot de passe est le même
-        const isSamePassword = await bcrypt.compare(new_password, user.pass);
-        if (isSamePassword) {
-            return res.status(400).json({
-                message: "Le nouveau mot de passe doit être différent de l'ancien.",
-                status: 400,
-                timestamp: new Date().toDateString()
-            });
-        }
-
-        // Vérification de la validité du mot de passe
-        if (typeof new_password !== "string" || new_password.trim() === "") {
-            return res.status(400).json({ message: "Le mot de passe est invalide." });
-        }
-
-        // Hash du nouveau mot de passe
-        const hashedPassword =await bcrypt.hash(new_password,10);
-
-        // Changement du mot de passe dans la base de données
-        const promise_response = await mongomock.changePassword(user.user_id, hashedPassword);
-        return res.status(200).json(promise_response);
-
-    } catch (error) {
-        // Capture des erreurs
-        console.error("Erreur interne :", error);
-        return res.status(500).json({ message: "Erreur interne.", error: error.message });
+        res.status(statusValue).json({
+            message: e.message,
+            status: e.status,
+            timestamp: e.timestamp,
+        });
     }
     
-   
 });
 
-// app.post('/send_password_recovery_mail',(req,res) => {
-//     const user_email = req.user_email;
 
-//     if(!user_email) return res.status(400).json({message:`Veuillez spécifier un mail`,status:400, timestamp: new Date().toDateString()});
-//     if(!checkIfEmailIsValid(user_email)) return res.status(400).json({message:`Mail invalide`,status:400, timestamp: new Date().toDateString()});
+app.post('/del_comment', verifyToken, checkIfTokenRevoked, async (req,res)=>{
+    const user_id = req.user.user_id;
+    const comment_id = Number(req.body.comment_id);
+    const game_id=Number(req.body.game_id);
 
-//     mockData.findUser(user_email).then(user => {    
-//         const cookieData = {    // Données qui seront stocké dans le cookie.
-//             recovery_token: crypto.lib.WordArray.random(32).toString(crypto.enc.Hex),
-//             user_id:user.user_id,
-//             user_email:user.user_email,
-//         }
+    if (!user_id || !comment_id || !game_id) return  res.status(400).json({message: "Some arguments are missing.", status:400, timestamp: new Date().toString()});
 
-//         res.cookie('recovery_cookie', JSON.stringify(cookieData), { // Ajoute le cookie dans l'entête de la réponse.
-//             httpOnly: true,
-//             secure: true,
-//             maxAge: 60 * 60 * 1000, // 1h de durée de vie.
-//             signed: true, // Signe le cookie pour garantir son intégrité.
-//         });
+    try {
+        const response = await utils.delComment(user_id, game_id, comment_id);
+        return res.status(200).json({data:response, ...checkIfNewAccessToken(req)});
+    } catch (e) {
+        let status = e.status || 500;
 
-//         const resetLink = (`https:5001/reset-password?token=${cookieData.recovery_token}`);
-//         const text = `Cliquez sur le lien suivant pour réinitialiser votre mot de passe : ${resetLink}`;
-//         sendRecoveryMail(user.user_email,text);
-
-//         res.status(200).json(`L'email de récupération a bien été envoyé.`);
-//     }).catch(error => {
-//         res.status(500).json({message:`Une erreur est survenu lors de l'envoie du mail.`,status:500, timestamp: new Date().toDateString()});
-//     })
-   
-// });
-
-app.get('/most_added_games', (req,res)=>{
+        if (e.message.includes("not found")) status = 404;
+        return res.status(status).json({
+            message: e.message,
+            status: status,
+            timestamp: new Date().toString(),
+        });
+    }
     
-    mongomock.tenMostAddedGames().then((promise_response)=>{
-        res.json(promise_response);
-    }).catch((error)=>{
-        res.status(500).json({message: "Soucis rencontré lors de l'ajout du jeu :",error})
-    })
+});
+
+app.post('/add_game_to_list', verifyToken, checkIfTokenRevoked, async (req,res)=>{
+    const user_id = req.user.user_id;
+    const game_id = Number(req.body.game_id);
+
+    try {
+        const response = await utils.addGameToList(user_id, game_id);
+        res.json({data:response, ...checkIfNewAccessToken(req)});
+    } catch (e) {
+        let status = 500;
+
+        if (e.message === "The user has not been found." || e.message === "The game has not been found.") {
+            status = 404;
+        }
+
+        res.status(status).json({ message: e.message, status: e.status, timestamp:e.timestamp });
+    }
    
 });
 
-app.get('/top_rated_games_by_genre', (req,res)=>{
+app.post('/like_comment', verifyToken, checkIfTokenRevoked, async (req,res)=>{
+    const user_id = req.user.user_id;
+    const game_id = Number(req.body.game_id);
+    const comment_id= Number(req.body.comment_id);
+
+    try {
+        const response = await utils.addCommentLike(user_id, game_id, comment_id);
+        
+        res.status(200).json({ data:response, ...checkIfNewAccessToken(req) });
+    } catch (e) {
+        let status = 500;
+
+        if (e instanceof ReferenceError) {
+            status = 400;
+        } else if (e.message.includes("not found")) {
+            status = 404;
+        } else if (e.message.includes("already like")) {
+            status = 400;
+        }
+
+        res.status(status).json({
+            message: e.message,
+            status: e.status,
+            timestamp: e.timestamp,
+        });
+    }
+   
+});
+
+app.post('/unlike_comment', verifyToken, checkIfTokenRevoked, async (req,res)=>{
+    const user_id = req.user.user_id;
+    const game_id = Number(req.body.game_id);
+    const comment_id= Number(req.body.comment_id);
+
+    try {
+        const response = await utils.unlikeComment(user_id, game_id, comment_id);
+        return res.status(200).json({data:response, ...checkIfNewAccessToken(req)});
+
+    } catch (e) {
+        const status = 500;
+        return res.status(status).json({
+            message: e.message,
+            status: e.status,
+            timestamp: e.timestamp,
+        });
+    }
+    
+});
+
+app.post('/change_password', verifyToken, checkIfTokenRevoked, async (req,res)=>{
+    const user_email = req.body.user_email;
+    const new_password = req.body.new_password;
+
+    try {
+        const response= await utils.changePassword(user_email, new_password);
+        return res.status(200).json({data:response});
+    } catch (e) {
+        let status = 500;
+
+        if (e.message.includes("must")) {
+            status = 400;
+        } 
+        else if (e.message.includes("found")) {
+            status = 404;
+        }
+        return res.status(status).json({ message: e.message, status: e.status, timestamp: e.timestamp });
+    }
+   
+});
+
+app.post('/send_password_recovery_mail', async (req,res) => {
+    const user_email = req.user_email;
+
+    if (!user_email) {
+        return res.status(400).json({ message: "Email parameter is missing.", status: 400, timestamp: new Date().toString() });
+    }
+    
+    try {
+
+        if (!utils.checkIfEmailIsValid(user_email)) {
+            return res.status(400).json({ message: "Invalid mail.", status: 400, timestamp: new Date().toString() });
+        }
+
+        const response = await utils.sendPasswordRecoveryEmail(user_email, res);
+        res.status(200).json(response);
+    } catch (e) {
+        res.status(500).json({
+            message: e.message,
+            status: e.status,
+            timestamp:e.timestamp,
+        });
+    }
+   
+});
+
+app.get('/most_added_games', async (req,res)=>{
+    
+    try {
+        const games = await utils.fetchTenMostAddedGames();
+        res.json(games);
+    } catch (e) {
+        res.status(500).json({ message: e.message, status: e.status, timestamp: e.timestamp });
+    }
+   
+});
+
+app.get('/top_rated_games_by_genre', async (req,res)=>{
     const genre=req.query.genre;
 
-    mongomock.topRatedGameByGenre(genre).then((promise_response)=>{
-        res.json(promise_response);
-    }).catch((error)=>{
-        res.status(500).json({message: "Soucis rencontré lors de la récupération des top_rated_games_by_genre :",error})
-    })
+    try {
+        const games = await utils.fetchTopRatedGamesByGenre(genre);
+        res.status(200).json(games);
+    } catch (e) {
+        res.status(400).json({ message: e.message || 'An unexpected error occurred', status: 400, timestamp:new Date().toISOString() });
+    }
    
 });
 
-app.get('/most_recent_games', (req,res)=>{
-    const page_number=req.query.page_number;
+app.get('/most_recent_games', async (req,res)=>{
+    const page_number=req.query.page_number || 1;
     const game_type=req.query.game_type || "any";
 
-    mongomock.mostRecentGame(game_type,page_number).then((promise_response)=>{
-        res.json(promise_response);
-    }).catch((error)=>{
-        res.status(500).json({message: "Soucis rencontré lors de la récupération des top_rated_games_by_genre :",error})
-    })
+    try {
+        const games = await utils.fetchMostRecentGames(game_type, page_number);
+        res.json(games);
+    } catch (e) {
+        res.status(500).json({ message: e.message, status: e.status, timestamp: e.timestamp });
+    }
    
 });
 
@@ -657,6 +608,5 @@ const PORT = 5001; // Changez 5000 en un autre port, comme 5001
 app.listen(PORT, () => {
   console.log(`Serveur en cours d'exécution sur http://localhost:${PORT}`);
 });
-
 
 export default app;

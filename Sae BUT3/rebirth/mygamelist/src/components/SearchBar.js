@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./SearchBar.css";
+import fetchWrapper from "../fetchWrapper.js";
+import { jwtDecode } from "jwt-decode";
 
-function SearchBar({ images, onGameSelect }) {
-  const [searchQuery, setSearchQuery] = useState(""); // Recherche par titre
-  const [filteredImages, setFilteredImages] = useState([]); // Images filtrées
+const SearchBar = ({ images, onGameSelect }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [developerQuery, setDeveloperQuery] = useState("");
+  const [publisherQuery, setPublisherQuery] = useState("");
+  const [filteredImages, setFilteredImages] = useState([]);
+  const [filterOptions, setFilterOptions] = useState({
+    genres: [],
+    platforms: [],
+    game_modes: [],
+    player_perspectives: [],
+    game_engines: [],
+    themes: [],
+  });
   const [activeFilters, setActiveFilters] = useState({
     genres: [],
     platforms: [],
@@ -11,33 +23,140 @@ function SearchBar({ images, onGameSelect }) {
     player_perspectives: [],
     game_engines: [],
     themes: [],
-    dlcs: false,
   });
-  const [showFilters, setShowFilters] = useState(false); // Afficher/masquer les filtres
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // Détecter les écrans mobiles
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [expandedFilters, setExpandedFilters] = useState({
+    genres: false,
+    platforms: false,
+    game_modes: false,
+    player_perspectives: false,
+    game_engines: false,
+    themes: false,
+  });
+  const filterRef = useRef(null);
+  const imagesPerPage = 9;
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
+const [developerSuggestions, setDeveloperSuggestions] = useState([]);
+const [publisherSuggestions, setPublisherSuggestions] = useState([]);
+const autocompleteRef = useRef(null);  // Reference for autocomplete lists
+const searchRef = useRef(null);  // Reference for search input fields
+const [isSearchActive, setIsSearchActive] = useState(false);
+const [isNoResults, setIsNoResults] = useState(false);
 
-  const filterRef = useRef(null); // Référence pour détecter les clics en dehors du filtre
 
-  const imagesPerPage = 9; // Nombre d'images par page
-  const [currentPage, setCurrentPage] = useState(1); // Page actuelle
-  const [showMoreGenres, setShowMoreGenres] = useState(false);
-  const [showMorePlatforms, setShowMorePlatforms] = useState(false);
-  const [showMoreGameModes, setShowMoreGameModes] = useState(false);
-  const [showMorePlayerPerspectives, setShowMorePlayerPerspectives] = useState(false);
-  const [showMoreGameEngines, setShowMoreGameEngines] = useState(false);
-  const [showMoreThemes, setShowMoreThemes] = useState(false);
+const fetchAutocomplete = async (query, type) => {
+  const searchQuery = typeof query === "string" ? query.trim() : "";
 
-  // Fonction fetch pour récupérer les jeux avec un titre et des filtres donnés
-  const fetchGames = async (title = "", page_number = 1, filters = {}) => {
+  if (!searchQuery) {
+    switch (type) {
+      case "game":
+        setAutocompleteSuggestions([]);
+        break;
+      case "developer":
+        setDeveloperSuggestions([]);
+        break;
+      case "publisher":
+        setPublisherSuggestions([]);
+        break;
+      default:
+        break;
+    }
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `http://localhost:5001/autocomplete?query=${encodeURIComponent(searchQuery)}&type=${type}`
+    );
+    const data = await response.json();
+    if (Array.isArray(data)) {
+      switch (type) {
+        case "game":
+          setAutocompleteSuggestions(data.slice(0, 10));
+          break;
+        case "developer":
+          setDeveloperSuggestions(data.slice(0, 10));
+          break;
+        case "publisher":
+          setPublisherSuggestions(data.slice(0, 10));
+          break;
+        default:
+          break;
+      }
+    } else {
+      console.warn("Données inattendues pour l'autocomplétion :", data);
+      setAutocompleteSuggestions([]);
+      setDeveloperSuggestions([]);
+      setPublisherSuggestions([]);
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'autocomplétion :", error);
+    setAutocompleteSuggestions([]);
+    setDeveloperSuggestions([]);
+    setPublisherSuggestions([]);
+  }
+};
+
+
+useEffect(() => {
+  fetchAutocomplete(searchQuery, "game");
+}, [searchQuery]);
+
+useEffect(() => {
+  fetchAutocomplete(developerQuery, "developer");
+}, [developerQuery]);
+
+useEffect(() => {
+  fetchAutocomplete(publisherQuery, "publisher");
+}, [publisherQuery]);
+
+
+  // Détecte si l'écran est mobile
+  const checkIsMobile = () => {
+    setIsMobile(window.innerWidth <= 768);
+  };
+
+  useEffect(() => {
+    window.addEventListener("resize", checkIsMobile);
+    return () => {
+      window.removeEventListener("resize", checkIsMobile);
+    };
+  }, []);
+
+  // Fetch des options de filtres depuis l'API
+  const fetchFilters = async () => {
     try {
-      const filterParams = new URLSearchParams({
+      const response = await fetch("http://localhost:5001/filters");
+      const data = await response.json();
+      setFilterOptions({
+        genres: data.genres || [],
+        platforms: data.platforms || [],
+        game_modes: data.game_modes || [],
+        player_perspectives: data.player_perspectives || [],
+        game_engines: data.engines || [],
+        themes: data.themes || [],
+      });
+    } catch (error) {
+      console.error("Erreur lors de la récupération des filtres :", error);
+    }
+  };
+
+  // Fetch des jeux
+  const fetchGames = async (title = "", developers = "", publishers = "", page_number = 1, filters = {}) => {
+    try {
+      const params = new URLSearchParams({
         title,
+        developers,
+        publishers,
         page_number,
         ...filters,
       }).toString();
 
-      const response = await fetch(`http://localhost:5001/search_game?${filterParams}`);
+      const response = await fetch(`http://localhost:5001/search_game?${params}`);
       const data = await response.json();
+      console.log("Données récupérées :", data); // Debug
       return data;
     } catch (error) {
       console.error("Erreur lors de la récupération des jeux :", error);
@@ -46,9 +165,7 @@ function SearchBar({ images, onGameSelect }) {
   };
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    fetchFilters();
   }, []);
 
   useEffect(() => {
@@ -60,71 +177,54 @@ function SearchBar({ images, onGameSelect }) {
         player_perspectives: activeFilters.player_perspectives.join(","),
         game_engines: activeFilters.game_engines.join(","),
         themes: activeFilters.themes.join(","),
-        dlcs: activeFilters.dlcs ? "true" : "false",
       };
-
-      try {
-        const games = await fetchGames(searchQuery, currentPage, filters);
-        if (Array.isArray(games)) {
-          const filteredGames = games.filter((game) => {
-            const matchesSearchQuery = game.title.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesPlayerPerspective = activeFilters.player_perspectives.length === 0 ||
-              game.player_perspectives.some((perspective) =>
-                activeFilters.player_perspectives.includes(perspective)
-              );
-            const matchesGameEngine = activeFilters.game_engines.length === 0 ||
-              game.game_engines.some((engine) =>
-                activeFilters.game_engines.includes(engine)
-              );
-            const matchesThemes = activeFilters.themes.length === 0 ||
-              game.themes.some((theme) =>
-                activeFilters.themes.includes(theme)
-              );
-
-            return matchesSearchQuery && matchesPlayerPerspective && matchesGameEngine && matchesThemes;
-          });
-          setFilteredImages(filteredGames); // Mettre à jour les jeux filtrés dans l'état
-        } else {
-          setFilteredImages([]); // En cas d'erreur, vider les résultats
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des jeux :", error);
-        setFilteredImages([]); // En cas d'erreur, vider les résultats
-      }
+      const games = await fetchGames(searchQuery, developerQuery, publisherQuery, currentPage, filters);
+      setFilteredImages(games || []);
+      
+      // Vérifier si la recherche est active ou s'il n'y a pas de résultats
+      setIsSearchActive(!!searchQuery);
+      setIsNoResults(games.length === 0);
     };
-
+  
     loadGames();
-  }, [searchQuery, currentPage, activeFilters]);
-
-  const getCurrentPageImages = () => {
-    const indexOfLastImage = currentPage * imagesPerPage;
-    const indexOfFirstImage = indexOfLastImage - imagesPerPage;
-    return filteredImages.slice(indexOfFirstImage, indexOfLastImage);
-  };
-
-  const handlePageChange = (direction) => {
-    if (direction === "next" && currentPage * imagesPerPage < filteredImages.length) {
-      setCurrentPage(currentPage + 1);
-    }
-    if (direction === "prev" && currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-    window.scrollTo(0, 0); // Remonter en haut de la page
-  };
+  }, [searchQuery, developerQuery, publisherQuery, currentPage, activeFilters]);
+  
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1); // Revenir à la page 1
+    setCurrentPage(1);
+  };
+
+  const handleDeveloperSearch = (e) => {
+    setDeveloperQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePublisherSearch = (e) => {
+    setPublisherQuery(e.target.value);
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (key, value) => {
     setActiveFilters((prev) => {
-      const updatedFilter = prev[key].includes(value)
-        ? prev[key].filter((item) => item !== value)
-        : [...prev[key], value];
-      return { ...prev, [key]: updatedFilter };
+      if (typeof prev[key] === "boolean") {
+        return { ...prev, [key]: value };
+      } else {
+        const updatedFilter = prev[key].includes(value)
+          ? prev[key].filter((item) => item !== value)
+          : [...prev[key], value];
+        return { ...prev, [key]: updatedFilter };
+      }
     });
-    setCurrentPage(1); // Revenir à la page 1
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (direction) => {
+    if (direction === "next") {
+      setCurrentPage((prev) => prev + 1);
+    } else if (direction === "prev" && currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
   };
 
   const handleClearFilters = () => {
@@ -135,261 +235,325 @@ function SearchBar({ images, onGameSelect }) {
       player_perspectives: [],
       game_engines: [],
       themes: [],
-      dlcs: false,
     });
-    setSearchQuery(""); // Réinitialiser la barre de recherche
+    setSearchQuery("");
+    setDeveloperQuery("");
+    setPublisherQuery("");
+    setCurrentPage(1);
   };
 
-  const handleRankingClick = (genre) => {
-    const filteredByGenre = images.filter((image) => image.genres.includes(genre));
-    setFilteredImages(filteredByGenre);
-    setSearchQuery(""); // Réinitialise la recherche
-    setActiveFilters({
-      genres: [],
-      platforms: [],
-      game_modes: [],
-      player_perspectives: [],
-      game_engines: [],
-      themes: [],
-      dlcs: false,
-    });
+  const toggleExpandFilter = (key) => {
+    setExpandedFilters((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
-
-  const hasResults = filteredImages.length > 0 || searchQuery || Object.values(activeFilters).some((filter) => filter.length > 0);
-
-  const showPagination = filteredImages.length >= imagesPerPage;
-
-  const handleCloseFilter = () => {
-    setShowFilters(false); // Fermer le filtre
+  const renderFilterSection = (key, options) => (
+    <div className="filter-section" key={key}>
+      <h4>{key.charAt(0).toUpperCase() + key.slice(1)}</h4>
+      <div className="filter-options">
+        {options.slice(0, expandedFilters[key] ? options.length : 4).map((option) => (
+          <label key={option}>
+            <input
+              type="checkbox"
+              checked={activeFilters[key].includes(option)}
+              onChange={() => handleFilterChange(key, option)}
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+      {options.length > 4 && (
+        <button className="see-more" onClick={() => toggleExpandFilter(key)}>
+          {expandedFilters[key] ? "Voir moins" : "Voir plus"}
+        </button>
+      )}
+    </div>
+  );
+   // Function to handle clicks outside the search inputs or autocomplete list
+   const handleClickOutside = (event) => {
+    if (autocompleteRef.current && !autocompleteRef.current.contains(event.target) && searchRef.current && !searchRef.current.contains(event.target)) {
+      setAutocompleteSuggestions([]);
+      setDeveloperSuggestions([]);
+      setPublisherSuggestions([]);
+    }
   };
-
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
-        setShowFilters(false); // Ferme le filtre si un clic est effectué en dehors
+    document.addEventListener("mousedown", handleClickOutside);  // Listen for clicks
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);  // Clean up on component unmount
+    };
+  }, []);
+
+  const [favorites, setFavorites] = useState([]);
+
+  const accessToken = localStorage.getItem('accessToken');
+  let accesTokenData;
+  if (accessToken) {
+    accesTokenData = jwtDecode(accessToken);
+  }
+  const user_id = accesTokenData?.user_id;
+  
+  useEffect(() => {
+      const checkIfGameInFavorites = async () => {
+        try {
+        
+          const response = await fetchWrapper("http://localhost:5001/gamelist/", "GET", true, { user_id } );
+      
+          if (response.ok) {
+            const responseBody = await response?.json();
+            const currentFavorites = responseBody?.data;
+            setFavorites(currentFavorites);
+          }
+        } catch (e) {
+            console.error("An error has occured: ",e.message);
+        }
+    
       }
+    
+       checkIfGameInFavorites();
+  }, []);
+
+
+
+  const handleAddToFavorites = async (game, event) => {
+    event.preventDefault(); // Empêche l'action par défaut (ex. navigation)
+    event.stopPropagation(); // Empêche la propagation de l'événement aux éléments parents
+  
+    try {
+      const data = {
+        game_id: game.game_id,
+        user_id
+        // Ajoutez d'autres propriétés nécessaires si besoin
+      };
+  
+      const response = await fetchWrapper(
+        "http://localhost:5001/gamelist/add_game",
+        "POST",
+        true,
+        data
+      );
+  
+      if (response.ok) {
+        const updatedFavorites = [...favorites, game];
+        setFavorites(updatedFavorites);
+        localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+      } else {
+        console.error("Erreur lors de l'ajout du jeu aux favoris");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la gestion des favoris :", error);
+    }
+  };
+
+  const handleRemoveFavorites = async (game) => {
+    if (!user_id) {
+      console.error("L'identifiant utilisateur n'est pas défini.");
+      return;
+    }
+
+    const data = {
+      user_id,
+      game_id: game.game_id
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    try {
+      const response = await fetchWrapper(
+        "http://localhost:5001/gamelist/del_game",
+        "POST",
+        true,
+        data
+      );
+
+      if (response.ok) {
+        const requestForData = await fetchWrapper(
+          "http://localhost:5001/gamelist/",
+          "GET",
+          true,
+          {user_id}
+        );
+
+
+        if(requestForData.ok) {
+          const requestBody = await requestForData?.json();
+          setFavorites(requestBody?.data || []); // Mettre à jour la liste locale
+          if (requestBody.data?.newAccessToken) {
+            localStorage.setItem("accessToken", requestBody.data?.newAccessToken);
+          }
+        }
+        
+      } else {
+        console.error(
+          `Erreur lors de la suppression du favori: ${response.statusText}`
+        );
+      }
+    } catch (e) {
+      console.error("Une erreur est survenue :", e.message);
+    }
+  };
+  
+  
+
+
+  const isFavorite = (gameId) => {
+    return favorites.some((fav) => fav.game_id === gameId);
+  };
+  
 
   return (
     <div className="search-page">
-      
-      {/* Afficher le filtre uniquement sur mobile */}
       {isMobile && (
         <button className="filter-toggle" onClick={() => setShowFilters(true)}>
-          <i className="icon-">
-            <img src="/images/filter.svg" alt="filter" />
-          </i>
+          <img src="/images/filter.svg" alt="Filter" />
         </button>
       )}
 
-      {/* Bloc filtre qui s'affiche toujours en version PC */}
-      <div className={`filter-block ${isMobile && (showFilters ? "show" : "hidden")}`} ref={filterRef}>
-        <button className="close-filter" onClick={handleCloseFilter}>
-          &times;
-        </button>
+      <div
+        className={`filter-block ${
+          isMobile ? (showFilters ? "show" : "hidden") : "visible"
+        }`}
+        ref={filterRef}
+      >
+        {isMobile && (
+          <button className="close-filter" onClick={() => setShowFilters(false)}>
+            &times;
+          </button>
+        )}
         <h3>Filtres</h3>
-        <div className="filter-section">
-          <h4>Genres</h4>
-          <div className="filter-options">
-            {Array.from(new Set(images.flatMap((img) => img.genres || [])))
-              .slice(0, showMoreGenres ? Infinity : 4)
-              .map((genre) => (
-                <label key={genre}>
-                  <input
-                    type="checkbox"
-                    checked={activeFilters.genres.includes(genre)}
-                    onChange={() => handleFilterChange("genres", genre)}
-                  />
-                  {genre}
-                </label>
-              ))}
-          </div>
-          {images.flatMap((img) => img.genres || []).length > 10 && (
-            <button className="see-more" onClick={() => setShowMoreGenres((prev) => !prev)}>
-              {showMoreGenres ? "Voir moins" : "Voir plus"}
-            </button>
-          )}
-        </div>
-
-        <div className="filter-section">
-          <h4>Plateformes</h4>
-          <div className="filter-options">
-            {Array.from(new Set(images.flatMap((img) => img.platforms || [])))
-              .slice(0, showMorePlatforms ? Infinity : 4)
-              .map((platform) => (
-                <label key={platform}>
-                  <input
-                    type="checkbox"
-                    checked={activeFilters.platforms.includes(platform)}
-                    onChange={() => handleFilterChange("platforms", platform)}
-                  />
-                  {platform}
-                </label>
-              ))}
-          </div>
-          {images.flatMap((img) => img.platforms || []).length > 10 && (
-            <button className="see-more" onClick={() => setShowMorePlatforms((prev) => !prev)}>
-              {showMorePlatforms ? "Voir moins" : "Voir plus"}
-            </button>
-          )}
-        </div>
-
-        <div className="filter-section">
-          <h4>Modes de jeu</h4>
-          <div className="filter-options">
-            {Array.from(new Set(images.flatMap((img) => img.game_modes || [])))
-              .slice(0, showMoreGameModes ? Infinity : 4)
-              .map((mode) => (
-                <label key={mode}>
-                  <input
-                    type="checkbox"
-                    checked={activeFilters.game_modes.includes(mode)}
-                    onChange={() => handleFilterChange("game_modes", mode)}
-                  />
-                  {mode}
-                </label>
-              ))}
-          </div>
-        </div>
-
-        <div className="filter-section">
-          <h4>Perspectives du joueur</h4>
-          <div className="filter-options">
-            {Array.from(new Set(images.flatMap((img) => img.player_perspectives || [])))
-              .slice(0, showMorePlayerPerspectives ? Infinity : 4)
-              .map((perspective) => (
-                <label key={perspective}>
-                  <input
-                    type="checkbox"
-                    checked={activeFilters.player_perspectives.includes(perspective)}
-                    onChange={() => handleFilterChange("player_perspectives", perspective)}
-                  />
-                  {perspective}
-                </label>
-              ))}
-          </div>
-        </div>
-
-        <div className="filter-section">
-          <h4>Moteurs de jeu</h4>
-          <div className="filter-options">
-            {Array.from(new Set(images.flatMap((img) => img.game_engines || [])))
-              .slice(0, showMoreGameEngines ? Infinity : 4)
-              .map((engine) => (
-                <label key={engine}>
-                  <input
-                    type="checkbox"
-                    checked={activeFilters.game_engines.includes(engine)}
-                    onChange={() => handleFilterChange("game_engines", engine)}
-                  />
-                  {engine}
-                </label>
-              ))}
-          </div>
-        </div>
-
-        <div className="filter-section">
-          <h4>Thèmes</h4>
-          <div className="filter-options">
-            {Array.from(new Set(images.flatMap((img) => img.themes || [])))
-              .slice(0, showMoreThemes ? Infinity : 4)
-              .map((theme) => (
-                <label key={theme}>
-                  <input
-                    type="checkbox"
-                    checked={activeFilters.themes.includes(theme)}
-                    onChange={() => handleFilterChange("themes", theme)}
-                  />
-                  {theme}
-                </label>
-              ))}
-          </div>
-          {images.flatMap((img) => img.themes || []).length > 10 && (
-            <button className="see-more" onClick={() => setShowMoreThemes((prev) => !prev)}>
-              {showMoreThemes ? "Voir moins" : "Voir plus"}
-            </button>
-          )}
-        </div>
-
-        <div className="filter-section">
-          <h4>DLCs</h4>
-          <label>
-            <input
-              type="checkbox"
-              checked={activeFilters.dlcs}
-              onChange={() => handleFilterChange("dlcs", !activeFilters.dlcs)}
-            />
-            Inclure les DLCs
-          </label>
-        </div>
+        {Object.keys(filterOptions).map((key) =>
+          renderFilterSection(key, filterOptions[key])
+        )}
         <button className="apply-filters-button" onClick={handleClearFilters}>
           Réinitialiser les filtres
         </button>
       </div>
-
+      
       <div className="results-container">
         <div className="search-bar">
+        <div className="search-input-container" ref={searchRef}>
           <input
             type="text"
             placeholder="Rechercher des jeux..."
             value={searchQuery}
             onChange={handleSearch}
           />
+          {autocompleteSuggestions.length > 0 && (
+            <ul className="autocomplete-list" ref={autocompleteRef}>
+              {autocompleteSuggestions.map((suggestion, index) => (
+                <li key={index} onClick={() => setSearchQuery(suggestion.title)}>
+                  {suggestion.title}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-        {hasResults ? (
-          <div className="search-results">
-            {getCurrentPageImages().map((image) => (
-              <div
-                key={image.title}
-                className="search-result-item"
-                onClick={() => onGameSelect(image)}
-              >
-                <img
-                  src={image.cover.original}
-                  alt={image.title}
-                  className="game-image"
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="no-results">Aucun résultat trouvé.</div>
-        )}
+        <div className="search-input-container" ref={searchRef}>
+          <input
+            type="text"
+            placeholder="Rechercher des développeurs..."
+            value={developerQuery}
+            onChange={handleDeveloperSearch}
+          />
+          {developerSuggestions.length > 0 && (
+            <ul className="autocomplete-list" ref={autocompleteRef}>
+              {developerSuggestions.map((suggestion, index) => (
+                <li key={index} onClick={() => setDeveloperQuery(suggestion.developers)}>
+                  {suggestion.developers}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="search-input-container" ref={searchRef}>
+          <input
+            type="text"
+            placeholder="Rechercher des éditeurs..."
+            value={publisherQuery}
+            onChange={handlePublisherSearch}
+          />
+          {publisherSuggestions.length > 0 && (
+            <ul className="autocomplete-list" ref={autocompleteRef}>
+              {publisherSuggestions.map((suggestion, index) => (
+                <li key={index} onClick={() => setPublisherQuery(suggestion.publishers)}>
+                  {suggestion.publishers}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        </div>
 
-        {/* Pagination */}
-        {showPagination && (
-          <div className="pagination">
-            <button
-              className="pagination-button"
-              onClick={() => handlePageChange("prev")}
-              disabled={currentPage === 1}
-            >
-              Précédent
-            </button>
-            <span>Page {currentPage}</span>
-            <button
-              className="pagination-button"
-              onClick={() => handlePageChange("next")}
-              disabled={currentPage * imagesPerPage >= filteredImages.length}
-            >
-              Suivant
-            </button>
-          </div>
-        )}
-      </div>
 
-      <div className="ranking-block">
-        <h3>Classement</h3>
-        {["Role-playing (RPG)", "Action", "Adventure", "Sports", "Simulation"].map((genre) => (
-          <li key={genre} onClick={() => handleRankingClick(genre)}>{genre}</li>
-        ))}
+        <div className="search-results">
+  {filteredImages.map((image) => (
+    <div
+    key={image.title}
+    className="search-result-item"
+    onClick={() => onGameSelect(image)} // Event for game selection
+  >
+    <div className="game-cover-2">
+      <img
+        src={image.cover.original}
+        alt={image.title}
+        // No onClick here for the image, to allow game selection
+      />
+      {/* Add to favorites button */}
+      {(isSearchActive || !isNoResults) && (
+        <button
+          className={`add-button ${isFavorite(image.game_id) ? 'added' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent game selection when clicking on the favorite button
+            isFavorite(image.game_id) ? handleRemoveFavorites(image, e) : handleAddToFavorites(image, e); // Add to favorites
+          }}
+          type="button"
+        >
+          {isFavorite(image.game_id) ? 'Ajouté' : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="30px"
+              height="30px"
+              viewBox="0 0 24 24"
+              className="icon"
+            >
+              <path
+                d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z"
+                strokeWidth="1.5"
+                fill="none"
+              ></path>
+              <path d="M8 12H16" strokeWidth="1.5" fill="none" stroke="white"></path>
+              <path d="M12 16V8" strokeWidth="1.5" fill="none" stroke="white"></path>
+            </svg>
+          )}
+        </button>
+      )}
+    </div>
+  </div>
+  
+  
+  ))}
+</div>
+
+
+        <div className="pagination">
+          <button
+            className="pagination-button"
+            onClick={() => handlePageChange("prev")}
+            disabled={currentPage === 1}
+          >
+            Précédent
+          </button>
+          <span>Page {currentPage}</span>
+          <button
+            className="pagination-button"
+            onClick={() => handlePageChange("next")}
+            disabled={!filteredImages.length || filteredImages.length < imagesPerPage}
+          >
+            Suivant
+          </button>
+        </div>
       </div>
     </div>
   );
-}
+};
 
 export default SearchBar;

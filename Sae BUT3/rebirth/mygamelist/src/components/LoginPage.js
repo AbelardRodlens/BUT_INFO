@@ -1,81 +1,103 @@
-import React, { useState } from "react";
-import { Link, redirect } from "react-router-dom";
+import React from "react";
+import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import "./auth.css";
-import { useEffect } from "react";
+import fetchWrapper from "../fetchWrapper.js";
 
 function LoginPage() {
 
-  const [userEmail, setUserEmail] = useState("");
-  const [userPass, setUserPass] = useState("");
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [emailValue, setEmailValue] = useState("");
+  const [passValue, setPasslValue] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("accessToken")
+    const checkAuthentication = async () => {
+      const response = await fetchWrapper("http://localhost:5001/auth/status", "GET", true);
+      
+      const data = await response?.json();
+      
 
-    const headers = {}
-
-    if (accessToken) {
-      headers["Authorization"] = `Bearer ${accessToken}`;
-    }
-
-    const checkAuthentification = async () => {
-      const response = await fetch("http://localhost:5001/login", {
-        method: "GET",
-        credentials: "include",
-        headers:headers
-      });
-  
-      const data = await response.json();
-
-      if (data.newAccessToken) {
-        localStorage.setItem('accessToken',data.newAccessToken);
-      }
-
-      if (accessToken && data.removeAccessToken) {
-        localStorage.removeItem('accessToken');
-      } 
-
-      if (data.redirectUrl) {
+      if (data?.redirectUrl && data?.newAccessToken){
+        // Mettre à jour accesToken
+        localStorage.setItem('accesToken', data?.newAccessToken);
         // Rediriger immédiatement si l'utilisateur est connecté
         window.location.href = data.redirectUrl;
+      } 
+
+      else if (data?.isConnected){
+        window.location.href = "/";
       }
+
     };
   
     // Vérifier l'authentification dès le chargement de la page
-    checkAuthentification();
+    checkAuthentication();
   },[])
 
-  const handleLogin = async (e) => {
+  
+  
+
+  const submitHandler = useCallback(async (e) => {
     e.preventDefault();
 
-    const response = await fetch("http://localhost:5001/login_process",{
-      method:"POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body:JSON.stringify({
-        user_email: userEmail,
-        user_pass: userPass,
-      }),
-    });
+    const data = {
+      user_email: emailValue,
+      user_pass: passValue,
+    };
 
-    const data = await response.json();
+    try {
+      const response = await fetchWrapper("http://localhost:5001/auth/login_process", "POST", false, data);
 
-    if (response.ok){
-      // Stocker le token dans le localStorage
-      localStorage.setItem("accessToken",data.accessToken);
+      const responseBody = await response?.json();
 
-      // Rediriger l'user après la réussite de la connexion
+      if (!response.ok) {
+        throw new Error(responseBody?.message || "An error has occurred.");
+      }
+
+      const accessToken = responseBody?.data;
+      localStorage.setItem("accessToken", accessToken);
+
+      setErrorMessage(""); // Réinitialise l'erreur
+
+      console.log("Connexion réussie");
       window.location.href = "/";
-     
-    } else {
-      setErrorMessage(data.message || "Erreur lors de la connexion");
+    } catch (e) {
+      if (e.message.includes("The account is not activated")){
+        setErrorMessage("Your account is not activated. Please complete the registration.");
+
+      } else {
+        setErrorMessage(e.message);
+      }
+    
     }
-  }
+  }, [emailValue, passValue]); // Redéfini uniquement si ces valeurs changent
 
+  
+  const checkRegistrationFinalization = useCallback( async () => {
+    try {
+      const queryParams = new URLSearchParams(window.location.search);
+      const registrationToken = queryParams.get('token');
 
+      if (registrationToken) {
+        const response = await fetchWrapper("http://localhost:5001/user/registration_finalization", "POST", false, {registrationToken});
 
+        if (response.ok) {
+          localStorage.removeItem('registrationProcessus');
+          console.log("Inscription finalisée.");
+
+          queryParams.delete('token');
+          // const newUrl = `${window.location.pathname}?${queryParams.toString()}`;
+          const newUrl = '/login';
+          window.history.replaceState(null, '', newUrl);
+        }
+      }
+    } catch (e) {
+      console.error("An error has occured: ", e.message);
+    }
+  }, []);
+
+  checkRegistrationFinalization();
   return (
     <div className="auth-page">
       {/* Section gauche avec le texte d'accueil */}
@@ -92,11 +114,17 @@ function LoginPage() {
       {/* Section droite avec le formulaire */}
       <div className="login-section">
         <h2>Connexion</h2>
-        <form onSubmit={handleLogin}>
-          <input type="email" placeholder="Adresse email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
-          <input type="password" placeholder="Mot de passe"  value={userPass} onChange={(e) => setUserPass(e.target.value)} />
-          {errorMessage && <p style ={{ color:"red"}}>{errorMessage}</p>}
+        <form onSubmit={submitHandler}>
+        <div class="input-group">
+        <input type="email" id="email" class="input"  required  onChange={(e) => {setEmailValue(e.target.value)}}/>
+        <label for="email" class="user-label">Email</label>
+      </div>
+      <div class="input-group">
+        <input type="password" id="password" class="input" required  onChange={(e) => {setPasslValue(e.target.value)}}/>
+        <label for="password" class="user-label">Mot de passe</label>
+      </div>
           <button type="submit">Se connecter</button>
+          { errorMessage && (<p className="error-message" style={{color: "red"}}>{errorMessage}</p>)}
         </form>
         <p>
           Pas encore inscrit ? <Link to="/register">Créez un compte</Link>

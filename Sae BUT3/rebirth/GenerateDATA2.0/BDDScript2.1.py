@@ -5,8 +5,8 @@ import os
 import time
 
 # Vos identifiants API IGDB
-CLIENT_ID = '0000000000000000000000' #INFORMATION PRIVE
-ACCESS_TOKEN = '00000000000000000000'#INFORMATION PRIVE
+CLIENT_ID = 'ump28lo2jfyu2wb4ghtfietxop2172'
+ACCESS_TOKEN = 'v842k1b41uc1tyvzhkl90d719g5ahl'
 
 # URL de base pour l'API IGDB
 BASE_URL = "https://api.igdb.com/v4/games"
@@ -20,10 +20,11 @@ def fetch_games(offset):
         "Authorization": f"Bearer {ACCESS_TOKEN}"
     }
 
-    # Champs que nous voulons récupérer
+    # Champs que nous voulons récupérer, avec traduction en français si possible
     fields = """
         name,
         summary,
+        summary_fr,
         platforms.name,
         platforms.platform_logo.url,
         genres.name,
@@ -32,24 +33,18 @@ def fetch_games(offset):
         involved_companies.developer,
         involved_companies.publisher,
         first_release_date,
-        age_ratings.rating,
         artworks.url,
         game_modes.name,
-        player_perspectives.name,
         themes.name,
-        franchises.name,
-        dlcs.name,
-        game_engines.name,
-        videos.video_id,
         total_rating,
         total_rating_count
     """
 
     # Requête pour récupérer les jeux triés par total_rating_count
-    query = f"fields {fields}; limit 50; offset {offset}; sort total_rating_count desc;"
+    query = f"fields {fields}; limit 50; offset {offset}; sort total_rating_count desc; where language = 'fr';"
 
     response = requests.post(BASE_URL, headers=headers, data=query)
-    
+
     if response.status_code == 200:
         return response.json()
     else:
@@ -89,27 +84,25 @@ def transform_game_data(games):
             except (ValueError, OSError):
                 release_date = "Invalid Date"
 
+        # Récupération de la description en français ou anglais
+        description_en = game.get("summary", "N/A")
+        description_fr = game.get("summary_fr", description_en)
+
         # Construction des données nettoyées
         game_data = {
             "title": game.get("name", "N/A"),
-            "description": game.get("summary", "N/A"),
+            "description": {
+                "en": description_en,
+                "fr": description_fr
+            },
             "platforms": [p["name"] for p in game.get("platforms", [])],
-            "platform_logos": [
-                get_image_sizes(p.get("platform_logo", {}).get("url"))
-                for p in game.get("platforms", [])
-            ],
             "genres": [g["name"] for g in game.get("genres", [])],
             "cover": get_image_sizes(game.get("cover", {}).get("url")),
             "developers": developers,
             "publishers": publishers,
             "artworks": [get_image_sizes(a["url"]) for a in game.get("artworks", [])],
             "game_modes": [gm["name"] for gm in game.get("game_modes", [])],
-            "player_perspectives": [pp["name"] for pp in game.get("player_perspectives", [])],
             "themes": [t["name"] for t in game.get("themes", [])],
-            "franchises": [f["name"] for f in game.get("franchises", [])],
-            "dlcs": [dlc["name"] for dlc in game.get("dlcs", [])],
-            "game_engines": [ge["name"] for ge in game.get("game_engines", [])],
-            "videos": [f"https://www.youtube.com/watch?v={v['video_id']}" for v in game.get("videos", [])],
             "release_date": release_date,
             "total_rating": game.get("total_rating", "N/A"),
             "total_rating_count": game.get("total_rating_count", 0)
@@ -147,7 +140,7 @@ def main():
     while games_retrieved < 10000:
         print(f"Récupération des jeux à partir de l'offset {offset}...")
         games = fetch_games(offset)
-        
+
         if not games:
             print("Aucune donnée supplémentaire récupérée, arrêt.")
             break

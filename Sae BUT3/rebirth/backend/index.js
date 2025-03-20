@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const fs = require("fs");
+const User = require('./models/User');
+const bcrypt = require('bcrypt');
 
 // Chemin vers ton fichier JSON
 const jsonFilePath = "./GamesDATA.json";
@@ -8,34 +10,28 @@ const jsonFilePath = "./GamesDATA.json";
 const dbName = "gameLibrary";
 const mongoURI = `mongodb://localhost:27017/${dbName}`;
 
-// Connexion et suppression de la base à chaque exécution
-mongoose
-  .connect(mongoURI)
-  .then(async () => {
-    console.log("✅ Connecté à MongoDB");
-    await mongoose.connection.db.dropDatabase(); // Suppression de la base
-    console.log(`🗑️  Base de données "${dbName}" supprimée et prête pour une nouvelle importation.`);
-    await importData(); // Importer les données JSON
-    process.exit(0); // Terminer après le traitement
-  })
-  .catch((error) => {
-    console.error("❌ Erreur de connexion MongoDB:", error);
-    process.exit(1);
-  });
-
-// Schéma pour gérer le compteur d'ID
-const counterSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // Nom du compteur (exemple : "gameId")
-  seq: { type: Number, required: true }, // Dernier ID utilisé
+// Schéma pour les filtres
+const filtersSchema = new mongoose.Schema({
+  genres: [String],
+  themes: [String],
+  platforms: [String],
+  publishers: [String],
+  developers: [String],
+  game_modes: [String],
+  player_perspectives: [String],
+  engines: [String],
 });
 
-const Counter = mongoose.model("Counter", counterSchema);
+const Filters = mongoose.model("Filters", filtersSchema);
 
 // Schéma pour les jeux
 const gameSchema = new mongoose.Schema({
-  id: { type: Number, unique: true }, // ID incrémental
+  game_id: { type: Number, unique: true, required: true },
   title: { type: String, required: true },
-  description: String,
+  description: {
+    en: String,
+    fr: String,
+  },
   platforms: [String],
   platform_logos: [
     {
@@ -43,7 +39,10 @@ const gameSchema = new mongoose.Schema({
       original: String,
     },
   ],
-  genres: [String],
+  genres: {
+    en: [String],
+    fr: [String],
+  },
   cover: {
     thumb: String,
     original: String,
@@ -56,9 +55,18 @@ const gameSchema = new mongoose.Schema({
       original: String,
     },
   ],
-  game_modes: [String],
-  player_perspectives: [String],
-  themes: [String],
+  game_modes: {
+    en: [String],
+    fr: [String],
+  },
+  player_perspectives: {
+    en: [String],
+    fr: [String],
+  },
+  themes: {
+    en: [String],
+    fr: [String],
+  },
   franchises: [String],
   dlcs: [String],
   game_engines: [String],
@@ -67,77 +75,120 @@ const gameSchema = new mongoose.Schema({
     type: Date,
     validate: {
       validator: function (value) {
-        return value instanceof Date || value === null; // Autoriser `null` ou une date valide
+        return value instanceof Date || value === null;
       },
       message: "release_date doit être une date valide ou null.",
     },
     default: null,
   },
-  total_rating: Number,
-  total_rating_count: Number,
-});
-
-// Middleware : incrémenter automatiquement l'ID avant d'insérer un jeu
-gameSchema.pre("save", async function (next) {
-  if (this.isNew) {
-    try {
-      const counter = await Counter.findOneAndUpdate(
-        { name: "gameId" },        // Nom du compteur
-        { $inc: { seq: 1 } },      // Incrémenter `seq` de 1
-        { new: true, upsert: true } // Crée un document si inexistant
-      );
-
-      this.id = counter.seq; // Assigner le prochain ID
-      next();
-    } catch (error) {
-      next(error); // Transmettre l'erreur
-    }
-  } else {
-    next(); // Pas de modification si ce n'est pas un nouveau document
-  }
+  added: { type: Number, default: 0 },
 });
 
 const Game = mongoose.model("Game", gameSchema);
 
-// Fonction pour importer les données JSON dans MongoDB
+// Fonction pour importer les données JSON et générer les filtres
 async function importData() {
   try {
-    // Lire les données du fichier JSON
+    console.log("📥 Lecture et nettoyage des données JSON...");
     const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, "utf8"));
 
-    // Nettoyer les données : convertir les dates non valides en null
-    const cleanedData = jsonData.map((game) => ({
+    const cleanedData = jsonData.map((game) => {
+      delete game.total_rating;
+      delete game.total_rating_count;
+
+      return {
+        ...game,
+        release_date: isValidDate(game.release_date) ? new Date(game.release_date) : null,
+      };
+    });
+
+    // Ajouter le champ `added` basé sur la position dans la liste
+    const dataWithIds = cleanedData.map((game, index) => ({
       ...game,
-      release_date: isValidDate(game.release_date) ? new Date(game.release_date) : null,
+      game_id: index + 1,
+      added: Math.floor(1000 - index * (1000 / cleanedData.length)), // Génère une valeur dégressive
     }));
 
-    // Gérer l'incrémentation manuelle des IDs
-    let counter = await Counter.findOneAndUpdate(
-      { name: "gameId" },
-      { $inc: { seq: cleanedData.length } }, // Réserve une plage pour les IDs
-      { new: true, upsert: true }
-    );
-
-    let currentId = counter.seq - cleanedData.length + 1;
-
-    const dataWithIds = cleanedData.map((game) => ({
-      ...game,
-      id: currentId++, // Ajouter un ID incrémental
-    }));
-
-    // Insérer les données dans la collection
+    console.log("🗄️ Insertion des jeux dans la base de données...");
     await Game.insertMany(dataWithIds);
-    console.log("✅ Données importées avec succès !");
+    console.log("✅ Données des jeux importées avec succès !");
+
+    console.log("📊 Génération des filtres...");
+    await generateFilters();
   } catch (error) {
     console.error("❌ Erreur lors de l'import des données :", error);
   }
 }
 
+// Générer les filtres et les sauvegarder dans la base
+const generateFilters = async () => {
+  try {
+    const filters = {
+      genres: await Game.distinct("genres.fr"),
+      themes: await Game.distinct("themes.fr"),
+      platforms: await Game.distinct("platforms"),
+      publishers: await Game.distinct("publishers"),
+      developers: await Game.distinct("developers"),
+      game_modes: await Game.distinct("game_modes.fr"),
+      player_perspectives: await Game.distinct("player_perspectives.fr"),
+      engines: await Game.distinct("game_engines"),
+    };
 
-// Fonction utilitaire pour vérifier si une date est valide
+    await Filters.deleteMany({}); // Supprime les anciens filtres
+    await Filters.create(filters); // Crée un nouveau document
+    console.log("✅ Filtres générés et sauvegardés avec succès !");
+  } catch (error) {
+    console.error("❌ Erreur lors de la génération des filtres :", error.message);
+  }
+};
+
+// Vérifier si une date est valide
 function isValidDate(date) {
   return !isNaN(Date.parse(date));
 }
 
-// Exporter le modèle pour des utilisations ultérieures
-module.exports = Game;
+const genUser = async () => {
+  try {
+    for (let i = 0; i < 10; i++) {
+      const username = `user_${Math.random().toString(36).substring(7)}`;
+      const hashedPassword = await bcrypt.hash(username, 10);
+
+      const user = {
+        user_id: i + 1, 
+        username,
+        pass: hashedPassword,
+        email: `${username}@gmail.com`,
+        tokens: [],
+        game_list: [], 
+        profile_picture: undefined,
+        bio: "",
+      };
+
+      await User.create(user); 
+      console.log(`${username} créé`);
+    }
+  } catch (e) {
+    console.error("error has occured :", e.message);
+  }
+};
+
+
+// Connexion à MongoDB et exécution
+mongoose
+  .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(async () => {
+    console.log("✅ Connecté à MongoDB");
+    console.log(`🗑️ Suppression de la base de données "${dbName}"...`);
+    await mongoose.connection.db.dropDatabase(); // Suppression de la base
+    console.log("📦 Recréation de la base de données...");
+    await importData(); // Importer les données JSON et générer les filtres
+    await genUser();
+    process.exit(0); // Terminer après le traitement
+  })
+  .catch((error) => {
+    console.error("❌ Erreur de connexion MongoDB :", error);
+    process.exit(1);
+  });
+
+// Exporter les modèles pour des utilisations ultérieures
+module.exports = { Game, Filters };
